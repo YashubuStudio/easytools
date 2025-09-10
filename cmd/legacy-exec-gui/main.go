@@ -19,7 +19,6 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -122,35 +121,7 @@ func main() {
 	maxErrEntry.SetText("2097152")
 	stdinCheck := widget.NewCheck("Allow stdin", nil)
 
-	smallLabel := func(txt string, maxWidth float32) fyne.CanvasObject {
-		size := theme.TextSize() - 2
-		if maxWidth > 0 && fyne.MeasureText(txt, size, fyne.TextStyle{}).Width > maxWidth {
-			words := strings.Fields(txt)
-			var lines []string
-			line := ""
-			for _, w := range words {
-				next := w
-				if line != "" {
-					next = line + " " + w
-				}
-				if fyne.MeasureText(next, size, fyne.TextStyle{}).Width > maxWidth {
-					if line != "" {
-						lines = append(lines, line)
-					}
-					line = w
-				} else {
-					line = next
-				}
-			}
-			if line != "" {
-				lines = append(lines, line)
-			}
-			txt = strings.Join(lines, "\n")
-		}
-		t := canvas.NewText(txt, theme.ForegroundColor())
-		t.TextSize = size
-		return t
-	}
+	// 余白ユーティリティ
 	withMargin := func(o fyne.CanvasObject) fyne.CanvasObject {
 		m := float32(theme.TextSize())
 		padH := func() fyne.CanvasObject {
@@ -165,27 +136,55 @@ func main() {
 		}
 		return container.NewBorder(padH(), padH(), padV(), padV(), o)
 	}
-	formRow := func(main, note string, w fyne.CanvasObject, width float32) fyne.CanvasObject {
+
+	// ▼ ラベル行
+	// main と (note) を同一行・横並びにし、note は小さいフォントで 1 行固定。
+	// 注釈の実測幅を加味して左カラム幅を伸ばし、縦に潰れたり 1 文字縦並びになるのを防ぐ。
+	// ▼ ラベル行（注釈は \n で分割し、行ごとに canvas.Text を行間ゼロで配置）
+	formRow := func(main, note string, w fyne.CanvasObject, baseLeftWidth float32) fyne.CanvasObject {
 		mainLbl := widget.NewLabel(main)
+
 		var leftContent fyne.CanvasObject
-		if note != "" {
-			avail := width - mainLbl.MinSize().Width - theme.Padding()
-			if avail < 0 {
-				avail = 0
+		if strings.TrimSpace(note) != "" {
+			// 小さめの文字サイズ（float32 で扱う）
+			sz := theme.TextSize() - 3
+			if sz < float32(8) {
+				sz = float32(8)
 			}
-			noteLbl := smallLabel(note, avail)
-			noteBox := container.NewVBox(layout.NewSpacer(), container.NewHBox(layout.NewSpacer(), noteLbl))
-			inner := container.NewBorder(nil, nil, mainLbl, nil, noteBox)
-			padR := canvas.NewRectangle(color.Transparent)
-			padR.SetMinSize(fyne.NewSize(theme.Padding()/2, 0))
-			padB := canvas.NewRectangle(color.Transparent)
-			padB.SetMinSize(fyne.NewSize(0, theme.Padding()/2))
-			leftContent = container.NewBorder(nil, padB, nil, padR, inner)
+
+			// 行高は計測値を使用（見た目が詰まるように少しだけマイナス補正してもOK）
+			lineHeight := fyne.MeasureText("Ag", sz, fyne.TextStyle{}).Height
+
+			// ラベルと注釈を行間ゼロで手動配置
+			leftBox := container.NewWithoutLayout()
+			mainLbl.Move(fyne.NewPos(0, 0))
+			leftBox.Add(mainLbl)
+
+			startY := mainLbl.MinSize().Height // ラベル直下から開始
+			lines := strings.Split(note, "\n")
+			for i, line := range lines {
+				t := canvas.NewText(line, theme.ForegroundColor())
+				t.TextSize = sz
+				t.Move(fyne.NewPos(0, startY+float32(i)*lineHeight))
+				leftBox.Add(t)
+			}
+
+			// ラベル高さ + 行数分の高さでラッパのサイズを決める
+			totalH := startY + float32(len(lines))*lineHeight
+			// GridWrap が高さを認識できるように明示的な最小サイズの箱で包む
+			leftContent = container.NewGridWrap(
+				fyne.NewSize(baseLeftWidth, totalH),
+				leftBox,
+			)
 		} else {
-			leftContent = mainLbl
+			leftContent = container.NewGridWrap(
+				fyne.NewSize(baseLeftWidth, mainLbl.MinSize().Height),
+				mainLbl,
+			)
 		}
-		left := container.NewGridWrap(fyne.NewSize(width, leftContent.MinSize().Height), leftContent)
-		return container.NewBorder(nil, nil, left, nil, w)
+
+		// 右側が入力ウィジェット
+		return container.NewBorder(nil, nil, leftContent, nil, w)
 	}
 
 	loadTool = func(name string) {
@@ -515,6 +514,7 @@ func main() {
 	homeTop := container.NewGridWithColumns(2, serverPanel, testPanel)
 	homeBody := container.NewBorder(nil, logPanel, nil, nil, homeTop)
 
+	// 左カラムの基準幅（主ラベル想定）を計測
 	regLabelWidth := widget.NewLabel("MaxStderr").MinSize().Width
 	inputForm := container.NewVBox(
 		formRow("Name", "", nameEntry, regLabelWidth),
@@ -522,7 +522,8 @@ func main() {
 		formRow("Cmd", "", cmdEntry, regLabelWidth),
 		formRow("Args", "(comma)", argsEntry, regLabelWidth),
 		formRow("Workdir", "", workdirEntry, regLabelWidth),
-		formRow("Env", "(KEY=VAL per line)", envEntry, regLabelWidth),
+		// Env の注釈は 1 行・小さいフォントで右並び
+		formRow("Env", "(KEY=VAL\nper line)", envEntry, regLabelWidth),
 		formRow("AllowEnv", "(comma)", allowEnvEntry, regLabelWidth),
 		formRow("Timeout", "", timeoutEntry, regLabelWidth),
 		formRow("MaxStdout", "", maxOutEntry, regLabelWidth),
