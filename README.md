@@ -48,7 +48,7 @@ The GUI is split into two main tabs to manage the server and registered tools.
 
 ### Server / API
 
-- **Server Settings** – left side fields for address, base path, endpoint paths, API key and a CORS toggle. Click **Start Server** or **Stop Server** to control the embedded HTTP server and see the current status at the top.
+- **Server Settings** – left side fields for address, base path, endpoint paths, API key, a CORS toggle and origin field. Click **Start Server** or **Stop Server** to control the embedded HTTP server and see the current status at the top.
 - **Test Console** – right side panel where you can choose a tool, provide JSON parameters or environment variables and run quick requests against the `/run` endpoint. Results are shown beneath the button.
 - **Server Logs** – bottom area streaming recent log output for easy debugging.
 

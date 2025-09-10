@@ -48,6 +48,7 @@ func main() {
 	defHealth := a.Preferences().StringWithFallback("path.health", "/healthz")
 	defKey := a.Preferences().StringWithFallback("api_key", "devkey")
 	defCORS := a.Preferences().BoolWithFallback("cors", true)
+	defCORSOrigin := a.Preferences().StringWithFallback("cors_origin", "*")
 
 	// サーバ設定 Entry
 	addrEntry := widget.NewEntry()
@@ -66,6 +67,8 @@ func main() {
 	keyEntry.SetText(defKey)
 	corsCheck := widget.NewCheck("Enable CORS", nil)
 	corsCheck.SetChecked(defCORS)
+	corsOriginEntry := widget.NewEntry()
+	corsOriginEntry.SetText(defCORSOrigin)
 
 	// 状態
 	var srv server.LegacyServer
@@ -462,12 +465,13 @@ func main() {
 
 	startBtn := widget.NewButtonWithIcon("Start Server", theme.MediaPlayIcon(), func() {
 		cfg := &model.ServerConfig{
-			Addr:     strings.TrimSpace(addrEntry.Text),
-			BasePath: strings.TrimSpace(baseEntry.Text),
-			APIKey:   keyEntry.Text,
-			CORS:     corsCheck.Checked,
-			Tools:    tools,
-			Paths:    model.Paths{Run: runEntry.Text, Tools: toolsEntry.Text, Reload: reloadEntry.Text, Health: healthEntry.Text},
+			Addr:       strings.TrimSpace(addrEntry.Text),
+			BasePath:   strings.TrimSpace(baseEntry.Text),
+			APIKey:     keyEntry.Text,
+			CORS:       corsCheck.Checked,
+			CORSOrigin: strings.TrimSpace(corsOriginEntry.Text),
+			Tools:      tools,
+			Paths:      model.Paths{Run: runEntry.Text, Tools: toolsEntry.Text, Reload: reloadEntry.Text, Health: healthEntry.Text},
 		}
 		if err := srv.Start(cfg); err != nil {
 			dialog.ShowError(err, w)
@@ -497,6 +501,7 @@ func main() {
 		widget.NewFormItem("Health", healthEntry),
 		widget.NewFormItem("API Key", keyEntry),
 		widget.NewFormItem("CORS", corsCheck),
+		widget.NewFormItem("CORS Origin", corsOriginEntry),
 	)
 
 	// 入力は縦一列（左1/2）
@@ -640,6 +645,7 @@ func main() {
 		a.Preferences().SetString("path.health", healthEntry.Text)
 		a.Preferences().SetString("api_key", keyEntry.Text)
 		a.Preferences().SetBool("cors", corsCheck.Checked)
+		a.Preferences().SetString("cors_origin", corsOriginEntry.Text)
 		_ = srv.Stop()
 		w.Close()
 	})

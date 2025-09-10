@@ -45,12 +45,13 @@ type Paths struct {
 }
 
 type ServerConfig struct {
-	Addr     string          `yaml:"addr"`
-	BasePath string          `yaml:"base_path"`
-	APIKey   string          `yaml:"api_key"`
-	CORS     bool            `yaml:"cors"`
-	Tools    map[string]Tool `yaml:"tools"`
-	Paths    Paths           `yaml:"paths"`
+	Addr       string          `yaml:"addr"`
+	BasePath   string          `yaml:"base_path"`
+	APIKey     string          `yaml:"api_key"`
+	CORS       bool            `yaml:"cors"`
+	CORSOrigin string          `yaml:"cors_origin"`
+	Tools      map[string]Tool `yaml:"tools"`
+	Paths      Paths           `yaml:"paths"`
 }
 
 // Convenience for handlers

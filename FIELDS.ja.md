@@ -51,12 +51,33 @@
 
 ## ServerConfig
 
+HTTP サーバー全体の動作を制御する設定です。
+
 | フィールド | 日本語 | 説明 |
 | --- | --- | --- |
-| Addr | アドレス | サーバーがバインドするアドレス。 |
-| BasePath | ベースパス | すべてのエンドポイントに付与されるパス。 |
-| APIKey | APIキー | 認証に使用する API キー。 |
-| CORS | CORS | CORS を有効にするかどうか。 |
-| Tools | ツール | 登録されたツール定義のマップ。 |
-| Paths | パス | API エンドポイントのパス設定。 |
+| Addr | アドレス | サーバーが待ち受けるアドレス（例 `":8080"`）。 |
+| BasePath | ベースパス | すべてのエンドポイントの先頭に付与されるパス。未指定時は `/v1`。 |
+| APIKey | APIキー | リクエストヘッダ `X-API-Key` と照合する認証キー。空なら認証なし。 |
+| CORS | CORS | `true` で `Access-Control-Allow-*` ヘッダを付与して `cors_origin` で指定したオリジンからの `GET`/`POST`/`OPTIONS` を許可。 |
+| CORSOrigin | CORSオリジン | CORS 有効時に `Access-Control-Allow-Origin` に設定する値。未指定時は `*`。 |
+| Tools | ツール | 利用可能なツール定義のマップ。キーがツール名。 |
+| Paths | パス | `run` や `tools` など各 API エンドポイントのパス設定。 |
+
+### CORS の詳細
+
+CORS を無効 (`false`) にするとブラウザから別オリジン経由で呼び出した際に同一生成元ポリシーによりブロックされます。
+有効 (`true`) にすると以下のヘッダが自動で付与され、プリフライト `OPTIONS` には `204 No Content` を返します。
+
+- `Access-Control-Allow-Origin: <cors_origin の値または *>`
+- `Access-Control-Allow-Headers: Content-Type, X-API-Key`
+- `Access-Control-Allow-Methods: GET, POST, OPTIONS`
+
+```yaml
+ServerConfig:
+  addr: ":8080"
+  base_path: "/v1"
+  api_key: "devkey"
+  cors: true          # CORS を有効化
+  cors_origin: "https://example.com"  # 許可オリジン（未指定時は *）
+```
 
