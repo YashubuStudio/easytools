@@ -16,7 +16,6 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -437,12 +436,9 @@ func main() {
 		statusLbl, // ステータスはボタンの下
 	)
 
-	// 右1/2に Test Run、下1/4 に Server Logs
-	homeTop := container.NewHSplit(serverPanel, testPanel)
-	homeTop.Offset = 0.5
-
-	homeBody := container.NewVSplit(homeTop, logPanel)
-	homeBody.Offset = 0.75
+	// 右1/2に Test Run、下1/4 に Server Logs（幅変更バーなし）
+	homeTop := container.NewGridWithColumns(2, serverPanel, testPanel)
+	homeBody := container.NewBorder(nil, logPanel, nil, nil, homeTop)
 
 	inputForm := widget.NewForm(
 		widget.NewFormItem("Name", nameEntry),
@@ -457,15 +453,17 @@ func main() {
 		widget.NewFormItem("MaxStderr", maxErrEntry),
 		widget.NewFormItem("Stdin", stdinCheck),
 	)
-	inputHeader := container.NewHBox(
+	buttonsRow1 := container.NewHBox(
 		widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), addTemplate),
 		widget.NewButtonWithIcon("Save", theme.DocumentSaveIcon(), saveTool),
 		widget.NewButtonWithIcon("Delete", theme.DeleteIcon(), delTool),
-		layout.NewSpacer(),
+	)
+	buttonsRow2 := container.NewHBox(
 		widget.NewButtonWithIcon("Import YAML", theme.FolderOpenIcon(), importYAML),
 		widget.NewButtonWithIcon("Export YAML", theme.DocumentSaveIcon(), exportYAML),
 	)
-	inputScroll := container.NewVScroll(container.NewVBox(inputHeader, widget.NewSeparator(), inputForm))
+	inputButtons := container.NewVBox(buttonsRow1, buttonsRow2)
+	inputScroll := container.NewVScroll(container.NewVBox(inputForm, widget.NewSeparator(), inputButtons))
 	accHolderBorder := container.NewBorder(widget.NewLabel("Tools (by Group)"), nil, nil, nil, accHolder)
 
 	quickSelect = widget.NewSelect(toolNames(), nil)
@@ -531,19 +529,12 @@ func main() {
 		),
 	)
 
-	// 右側 2/3 を「ツール一覧」と「Quick CMD」で 1/2 ずつ＝各 1/3
-	inner := container.NewHSplit(
-		accHolderBorder, // 中央 1/3: Tools (by Group)
-		quickPanel,      // 右   1/3: Quick CMD
+	// 全体を 左1/3（入力）、中央1/3（ツール一覧）、右1/3（Quick CMD）に並べる（幅変更バーなし）
+	registryBody := container.NewGridWithColumns(3,
+		inputScroll,
+		accHolderBorder,
+		quickPanel,
 	)
-	inner.Offset = 0.5
-
-	// 全体を 左 1/3（入力） + 右 2/3（inner）に分割
-	registryBody := container.NewHSplit(
-		inputScroll, // 左 1/3: 入力フォーム
-		inner,       // 右 2/3: （中央1/3 + 右1/3）
-	)
-	registryBody.Offset = 0.333
 
 	tabs := container.NewAppTabs(
 		container.NewTabItemWithIcon("Server / API", theme.HomeIcon(), homeBody),
