@@ -370,6 +370,7 @@ func main() {
 
 	logView := widget.NewMultiLineEntry()
 	logView.Disable()
+	logView.SetMinRowsVisible(15)
 	logView.Wrapping = fyne.TextWrapWord
 	go func() {
 		t := time.NewTicker(300 * time.Millisecond)
@@ -453,18 +454,18 @@ func main() {
 		widget.NewFormItem("MaxStderr", maxErrEntry),
 		widget.NewFormItem("Stdin", stdinCheck),
 	)
-	buttonsRow1 := container.NewHBox(
+	buttonsRow1 := container.NewCenter(container.NewHBox(
 		widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), addTemplate),
 		widget.NewButtonWithIcon("Save", theme.DocumentSaveIcon(), saveTool),
 		widget.NewButtonWithIcon("Delete", theme.DeleteIcon(), delTool),
-	)
-	buttonsRow2 := container.NewHBox(
+	))
+	buttonsRow2 := container.NewCenter(container.NewHBox(
 		widget.NewButtonWithIcon("Import YAML", theme.FolderOpenIcon(), importYAML),
 		widget.NewButtonWithIcon("Export YAML", theme.DocumentSaveIcon(), exportYAML),
-	)
+	))
 	inputButtons := container.NewVBox(buttonsRow1, buttonsRow2)
 	inputScroll := container.NewVScroll(container.NewVBox(inputForm, widget.NewSeparator(), inputButtons))
-	accHolderBorder := container.NewBorder(widget.NewLabel("Tools (by Group)"), nil, nil, nil, accHolder)
+	accHolderCard := widget.NewCard("Tools (by Group)", "", accHolder)
 
 	quickSelect = widget.NewSelect(toolNames(), nil)
 	qParams := widget.NewMultiLineEntry()
@@ -532,7 +533,7 @@ func main() {
 	// 全体を 左1/3（入力）、中央1/3（ツール一覧）、右1/3（Quick CMD）に並べる（幅変更バーなし）
 	registryBody := container.NewGridWithColumns(3,
 		inputScroll,
-		accHolderBorder,
+		accHolderCard,
 		quickPanel,
 	)
 
