@@ -54,9 +54,13 @@ The GUI is split into two main tabs to manage the server and registered tools.
 
 ### Tools (Registry)
 
-- **Tool Form** – left third form to register or edit a tool. Enter name, group, command, arguments, working directory, environment variables and safety limits. Buttons allow adding, saving or deleting entries as well as importing or exporting configuration as YAML.
+- **Tool Form** – left third form to register or edit a tool. Enter name, group, cmd (executable path), args (comma-separated; tokens like `{{msg}}` are replaced with `Params`), working directory, environment variables and safety limits. Buttons allow adding, saving or deleting entries as well as importing or exporting configuration as YAML.
 - **Tool List** – center accordion listing tools grouped by their `Group` value for quick selection.
 - **Quick CMD** – right third panel to run a selected tool immediately by supplying JSON parameters, environment or stdin and viewing the HTTP response. Intended for manual testing of individual tools.
+  - `Params (JSON)` replaces tokens like `{{name}}` in the tool's `Args`.
+  - `Env (JSON)` sets environment variables; only keys listed in `AllowEnv` are applied.
+  - `Stdin` sends text to the tool's standard input when `Allow Stdin` is enabled.
+  - Example: with `Cmd: /usr/bin/echo` and `Args: ["{{msg}}"]`, entering `{"msg":"hello"}` runs `/usr/bin/echo hello`.
 
 ## License
 MIT

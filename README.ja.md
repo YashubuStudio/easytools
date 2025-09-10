@@ -54,9 +54,13 @@ GUI はサーバー管理とツール登録の 2 つのタブで構成されて�
 
 ### Tools (Registry)
 
-- **ツール入力フォーム** – 左 1/3 のフォームでツールの登録・編集を行います。Name、Group、Cmd、Args、Workdir、Env、AllowEnv、Timeout、MaxStdout、MaxStderr、Stdin を入力し、Add/Save/Delete や YAML のインポート/エクスポートが利用できます。
+- **ツール入力フォーム** – 左 1/3 のフォームでツールの登録・編集を行います。Name、Group、Cmd（実行ファイル）、Args（カンマ区切り。`{{msg}}` のようなトークンは Params で置換）、Workdir、Env、AllowEnv、Timeout、MaxStdout、MaxStderr、Stdin を入力し、Add/Save/Delete や YAML のインポート/エクスポートが利用できます。
 - **ツール一覧** – 中央のアコーディオンで Group ごとにツールが表示され、簡単に選択できます。
 - **Quick CMD** – 右 1/3 のパネルで選択したツールを即座に実行できます。JSON 形式のパラメータ・環境変数・stdin を入力すると HTTP レスポンスが表示され、ツールの動作確認に役立ちます。
+  - `Params (JSON)` に入力した値は Args 内の `{{名前}}` トークンを置換します。
+  - `Env (JSON)` は AllowEnv に指定されたキーのみ環境変数として適用されます。
+  - `Stdin` は Allow Stdin が有効な場合に標準入力へ渡されます。
+  - 例: `Cmd: /usr/bin/echo`, `Args: ["{{msg}}"]` のツールで `Params: {"msg":"hello"}` を入力すると `/usr/bin/echo hello` が実行されます。
 
 ## ライセンス
 MIT
