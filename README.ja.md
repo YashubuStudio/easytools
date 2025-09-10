@@ -35,6 +35,14 @@ go build -o easytools.exe ./cmd/legacy-exec-gui
 | POST   | `/v1/run`     | ツールの実行          |
 | POST   | `/v1/reload`  | 設定の再読み込み      |
 
+各エンドポイントのパスはサーバー設定の `paths` セクションで変更できます。デフォルト値と役割は以下の通りです:
+
+- **`base_path`** (`/v1`): すべてのエンドポイントに付与されるプレフィックス。
+- **`paths.tools`** (`/tools`): `GET` で登録済みツール一覧。`GET /{group}/{name}` は API キー未設定時に単一ツールを実行。
+- **`paths.run`** (`/run`): `POST` の JSON 本文で指定されたツールを実行。
+- **`paths.reload`** (`/reload`): `POST` で `tools.yaml` を再読み込み。
+- **`paths.health`** (`/healthz`): `GET` でサーバー状態を返すヘルスチェック。
+
 リクエスト例:
 
 ```bash
