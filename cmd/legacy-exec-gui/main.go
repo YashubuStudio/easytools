@@ -12,10 +12,14 @@ import (
 	"strings"
 	"time"
 
+	"image/color"
+
 	fyne "fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -117,6 +121,72 @@ func main() {
 	maxErrEntry := widget.NewEntry()
 	maxErrEntry.SetText("2097152")
 	stdinCheck := widget.NewCheck("Allow stdin", nil)
+
+	smallLabel := func(txt string, maxWidth float32) fyne.CanvasObject {
+		size := theme.TextSize() - 2
+		if maxWidth > 0 && fyne.MeasureText(txt, size, fyne.TextStyle{}).Width > maxWidth {
+			words := strings.Fields(txt)
+			var lines []string
+			line := ""
+			for _, w := range words {
+				next := w
+				if line != "" {
+					next = line + " " + w
+				}
+				if fyne.MeasureText(next, size, fyne.TextStyle{}).Width > maxWidth {
+					if line != "" {
+						lines = append(lines, line)
+					}
+					line = w
+				} else {
+					line = next
+				}
+			}
+			if line != "" {
+				lines = append(lines, line)
+			}
+			txt = strings.Join(lines, "\n")
+		}
+		t := canvas.NewText(txt, theme.ForegroundColor())
+		t.TextSize = size
+		return t
+	}
+	withMargin := func(o fyne.CanvasObject) fyne.CanvasObject {
+		m := float32(theme.TextSize())
+		padH := func() fyne.CanvasObject {
+			r := canvas.NewRectangle(color.Transparent)
+			r.SetMinSize(fyne.NewSize(0, m))
+			return r
+		}
+		padV := func() fyne.CanvasObject {
+			r := canvas.NewRectangle(color.Transparent)
+			r.SetMinSize(fyne.NewSize(m, 0))
+			return r
+		}
+		return container.NewBorder(padH(), padH(), padV(), padV(), o)
+	}
+	formRow := func(main, note string, w fyne.CanvasObject, width float32) fyne.CanvasObject {
+		mainLbl := widget.NewLabel(main)
+		var leftContent fyne.CanvasObject
+		if note != "" {
+			avail := width - mainLbl.MinSize().Width - theme.Padding()
+			if avail < 0 {
+				avail = 0
+			}
+			noteLbl := smallLabel(note, avail)
+			noteBox := container.NewVBox(layout.NewSpacer(), container.NewHBox(layout.NewSpacer(), noteLbl))
+			inner := container.NewBorder(nil, nil, mainLbl, nil, noteBox)
+			padR := canvas.NewRectangle(color.Transparent)
+			padR.SetMinSize(fyne.NewSize(theme.Padding()/2, 0))
+			padB := canvas.NewRectangle(color.Transparent)
+			padB.SetMinSize(fyne.NewSize(0, theme.Padding()/2))
+			leftContent = container.NewBorder(nil, padB, nil, padR, inner)
+		} else {
+			leftContent = mainLbl
+		}
+		left := container.NewGridWrap(fyne.NewSize(width, leftContent.MinSize().Height), leftContent)
+		return container.NewBorder(nil, nil, left, nil, w)
+	}
 
 	loadTool = func(name string) {
 		t := tools[name]
@@ -361,14 +431,15 @@ func main() {
 		}()
 	})
 
+	runLabelWidth := widget.NewLabel("Params").MinSize().Width
 	testPanel := container.NewBorder(widget.NewLabel("Test Run"), nil, nil, nil,
-		container.NewVBox(
-			container.NewGridWithColumns(2, widget.NewLabel("Tool"), runSelect),
-			container.NewGridWithColumns(2, widget.NewLabel("Params (JSON)"), paramsEntryRun),
-			container.NewGridWithColumns(2, widget.NewLabel("Env (JSON)"), envEntryRun),
-			container.NewGridWithColumns(2, widget.NewLabel("Stdin"), container.NewBorder(nil, doTest, nil, nil, stdinEntryRun)),
-			container.NewGridWithColumns(2, widget.NewLabel("Result"), testOut),
-		),
+		withMargin(container.NewVBox(
+			formRow("Tool", "", container.NewMax(runSelect), runLabelWidth),
+			formRow("Params", "(JSON)", paramsEntryRun, runLabelWidth),
+			formRow("Env", "(JSON)", envEntryRun, runLabelWidth),
+			formRow("Stdin", "", container.NewBorder(nil, doTest, nil, nil, stdinEntryRun), runLabelWidth),
+			formRow("Result", "", testOut, runLabelWidth),
+		)),
 	)
 
 	logView := widget.NewMultiLineEntry()
@@ -444,18 +515,19 @@ func main() {
 	homeTop := container.NewGridWithColumns(2, serverPanel, testPanel)
 	homeBody := container.NewBorder(nil, logPanel, nil, nil, homeTop)
 
-	inputForm := widget.NewForm(
-		widget.NewFormItem("Name", nameEntry),
-		widget.NewFormItem("Group", groupEntry),
-		widget.NewFormItem("Cmd", cmdEntry),
-		widget.NewFormItem("Args (comma)", argsEntry),
-		widget.NewFormItem("Workdir", workdirEntry),
-		widget.NewFormItem("Env (KEY=VAL per line)", envEntry),
-		widget.NewFormItem("AllowEnv (comma)", allowEnvEntry),
-		widget.NewFormItem("Timeout", timeoutEntry),
-		widget.NewFormItem("MaxStdout", maxOutEntry),
-		widget.NewFormItem("MaxStderr", maxErrEntry),
-		widget.NewFormItem("Stdin", stdinCheck),
+	regLabelWidth := widget.NewLabel("MaxStderr").MinSize().Width
+	inputForm := container.NewVBox(
+		formRow("Name", "", nameEntry, regLabelWidth),
+		formRow("Group", "", groupEntry, regLabelWidth),
+		formRow("Cmd", "", cmdEntry, regLabelWidth),
+		formRow("Args", "(comma)", argsEntry, regLabelWidth),
+		formRow("Workdir", "", workdirEntry, regLabelWidth),
+		formRow("Env", "(KEY=VAL per line)", envEntry, regLabelWidth),
+		formRow("AllowEnv", "(comma)", allowEnvEntry, regLabelWidth),
+		formRow("Timeout", "", timeoutEntry, regLabelWidth),
+		formRow("MaxStdout", "", maxOutEntry, regLabelWidth),
+		formRow("MaxStderr", "", maxErrEntry, regLabelWidth),
+		formRow("Stdin", "", stdinCheck, regLabelWidth),
 	)
 	buttonsRow1 := container.NewCenter(container.NewHBox(
 		widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), addTemplate),
@@ -467,7 +539,7 @@ func main() {
 		widget.NewButtonWithIcon("Export YAML", theme.DocumentSaveIcon(), exportYAML),
 	))
 	inputButtons := container.NewVBox(buttonsRow1, buttonsRow2)
-	inputScroll := container.NewVScroll(container.NewVBox(inputForm, widget.NewSeparator(), inputButtons))
+	inputScroll := container.NewVScroll(withMargin(container.NewVBox(inputForm, widget.NewSeparator(), inputButtons)))
 	accHolderCard := widget.NewCard("Tools (by Group)", "", accHolder)
 
 	quickSelect = widget.NewSelect(toolNames(), nil)
@@ -523,22 +595,19 @@ func main() {
 
 	quickPanel := container.NewBorder(
 		widget.NewLabel("Quick CMD"), nil, nil, nil,
-		container.NewVBox(
+		withMargin(container.NewVBox(
 			container.NewGridWithColumns(2, widget.NewLabel("Tool"), quickSelect),
 			widget.NewLabel("Params (JSON)"), qParams,
 			widget.NewLabel("Env (JSON)"), qEnv,
 			widget.NewLabel("Stdin"), qStdin,
 			qRun,
 			widget.NewLabel("Result"), qOut,
-		),
+		)),
 	)
 
-	// 全体を 左1/3（入力）、中央1/3（ツール一覧）、右1/3（Quick CMD）に並べる（幅変更バーなし）
-	registryBody := container.NewGridWithColumns(3,
-		inputScroll,
-		accHolderCard,
-		quickPanel,
-	)
+	// 入力を広く取り、ツール一覧を狭める
+	registryLeft := container.NewBorder(nil, nil, nil, accHolderCard, inputScroll)
+	registryBody := container.NewBorder(nil, nil, nil, quickPanel, registryLeft)
 
 	tabs := container.NewAppTabs(
 		container.NewTabItemWithIcon("Server / API", theme.HomeIcon(), homeBody),
