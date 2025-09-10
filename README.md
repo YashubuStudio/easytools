@@ -35,6 +35,14 @@ Launch the binary to open the GUI. Configure the server address and paths, regis
 | POST   | `/v1/run`     | Execute a tool        |
 | POST   | `/v1/reload`  | Reload configuration  |
 
+Each endpoint path is configurable via the `paths` section in the server configuration. Defaults and roles:
+
+- **`base_path`** (`/v1`): prefix added to all endpoints.
+- **`paths.tools`** (`/tools`): `GET` lists all registered tools; `GET /{group}/{name}` runs a tool when no API key is set.
+- **`paths.run`** (`/run`): `POST` executes a tool specified in the JSON request body.
+- **`paths.reload`** (`/reload`): `POST` reloads `tools.yaml` without restarting the server.
+- **`paths.health`** (`/healthz`): `GET` health probe returning server status.
+
 Example request:
 
 ```bash
