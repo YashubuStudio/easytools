@@ -312,12 +312,16 @@ func main() {
 	runSelect = widget.NewSelect(toolNames(), nil)
 	paramsEntryRun := widget.NewMultiLineEntry()
 	paramsEntryRun.SetPlaceHolder(`{"msg":"hello"}`)
+	paramsEntryRun.SetMinRowsVisible(2)
 	envEntryRun := widget.NewMultiLineEntry()
 	envEntryRun.SetPlaceHolder(`{"API_TOKEN":"xxxxx"}`)
+	envEntryRun.SetMinRowsVisible(2)
 	stdinEntryRun := widget.NewMultiLineEntry()
 	stdinEntryRun.SetPlaceHolder("optional stdin...")
+	stdinEntryRun.SetMinRowsVisible(2)
 	testOut := widget.NewMultiLineEntry()
 	testOut.Disable()
+	testOut.SetMinRowsVisible(3)
 
 	doTest := widget.NewButton("POST /run", func() {
 		if runSelect.Selected == "" {
@@ -360,11 +364,10 @@ func main() {
 	testPanel := container.NewBorder(widget.NewLabel("Test Run"), nil, nil, nil,
 		container.NewVBox(
 			container.NewGridWithColumns(2, widget.NewLabel("Tool"), runSelect),
-			widget.NewLabel("Params (JSON)"), paramsEntryRun,
-			widget.NewLabel("Env (JSON)"), envEntryRun,
-			widget.NewLabel("Stdin"), stdinEntryRun,
-			doTest,
-			widget.NewLabel("Result"), testOut,
+			container.NewGridWithColumns(2, widget.NewLabel("Params (JSON)"), paramsEntryRun),
+			container.NewGridWithColumns(2, widget.NewLabel("Env (JSON)"), envEntryRun),
+			container.NewGridWithColumns(2, widget.NewLabel("Stdin"), container.NewBorder(nil, doTest, nil, nil, stdinEntryRun)),
+			container.NewGridWithColumns(2, widget.NewLabel("Result"), testOut),
 		),
 	)
 
