@@ -55,7 +55,11 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 	wrap := func(h http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			if cfg.CORS {
-				w.Header().Set("Access-Control-Allow-Origin", "*")
+				origin := "*"
+				if cfg.CORSOrigin != "" {
+					origin = cfg.CORSOrigin
+				}
+				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-API-Key")
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 				if r.Method == http.MethodOptions {

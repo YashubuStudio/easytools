@@ -143,6 +143,7 @@ ServerConfig:
   base_path: "/v1"
   api_key: "devkey"
   cors: true
+  cors_origin: "https://example.com"
   tools: {string: Tool}
   paths:
     run: "/run"
