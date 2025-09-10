@@ -593,9 +593,21 @@ func main() {
 			fyne.Do(func() { qOut.SetText(fmt.Sprintf("HTTP %d\n%s", resp.StatusCode, string(b))) })
 		}()
 	})
+	qFill := widget.NewButton("Fill Name/Cmd", func() {
+		sel := quickSelect.Selected
+		if sel == "" {
+			dialog.ShowInformation("Quick CMD", "select a tool", w)
+			return
+		}
+		if t, ok := tools[sel]; ok {
+			nameEntry.SetText(sel)
+			cmdEntry.SetText(t.Cmd)
+		}
+	})
+	qTitle := container.NewBorder(nil, nil, widget.NewLabel("Quick CMD"), qFill, nil)
 
 	quickPanel := container.NewBorder(
-		widget.NewLabel("Quick CMD"), nil, nil, nil,
+		qTitle, nil, nil, nil,
 		withMargin(container.NewVBox(
 			container.NewGridWithColumns(2, widget.NewLabel("Tool"), quickSelect),
 			widget.NewLabel("Params (JSON)"), qParams,
