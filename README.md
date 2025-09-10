@@ -42,6 +42,26 @@ curl -X POST 'http://localhost:8080/v1/run' \
   -d '{"tool":"echo","params":{"msg":"hello"}}'
 ```
 
+## Application Window
+
+The GUI is split into two main tabs to manage the server and registered tools.
+
+### Server / API
+
+- **Server Settings** – left side fields for address, base path, endpoint paths, API key and a CORS toggle. Click **Start Server** or **Stop Server** to control the embedded HTTP server and see the current status at the top.
+- **Test Console** – right side panel where you can choose a tool, provide JSON parameters or environment variables and run quick requests against the `/run` endpoint. Results are shown beneath the button.
+- **Server Logs** – bottom area streaming recent log output for easy debugging.
+
+### Tools (Registry)
+
+- **Tool Form** – left third form to register or edit a tool. Enter name, group, cmd (executable path), args (comma-separated; tokens like `{{msg}}` are replaced with `Params`), working directory, environment variables and safety limits. Buttons allow adding, saving or deleting entries as well as importing or exporting configuration as YAML.
+- **Tool List** – center accordion listing tools grouped by their `Group` value for quick selection.
+- **Quick CMD** – right third panel to run a selected tool immediately by supplying JSON parameters, environment or stdin and viewing the HTTP response. Intended for manual testing of individual tools.
+  - `Params (JSON)` replaces tokens like `{{name}}` in the tool's `Args`.
+  - `Env (JSON)` sets environment variables; only keys listed in `AllowEnv` are applied.
+  - `Stdin` sends text to the tool's standard input when `Allow Stdin` is enabled.
+  - Example: with `Cmd: /usr/bin/echo` and `Args: ["{{msg}}"]`, entering `{"msg":"hello"}` runs `/usr/bin/echo hello`.
+
 ## License
 MIT
 
