@@ -122,9 +122,33 @@ func main() {
 	maxErrEntry.SetText("2097152")
 	stdinCheck := widget.NewCheck("Allow stdin", nil)
 
-	smallLabel := func(txt string) fyne.CanvasObject {
+	smallLabel := func(txt string, maxWidth float32) fyne.CanvasObject {
+		size := theme.TextSize() - 2
+		if maxWidth > 0 && fyne.MeasureText(txt, size, fyne.TextStyle{}).Width > maxWidth {
+			words := strings.Fields(txt)
+			var lines []string
+			line := ""
+			for _, w := range words {
+				next := w
+				if line != "" {
+					next = line + " " + w
+				}
+				if fyne.MeasureText(next, size, fyne.TextStyle{}).Width > maxWidth {
+					if line != "" {
+						lines = append(lines, line)
+					}
+					line = w
+				} else {
+					line = next
+				}
+			}
+			if line != "" {
+				lines = append(lines, line)
+			}
+			txt = strings.Join(lines, "\n")
+		}
 		t := canvas.NewText(txt, theme.ForegroundColor())
-		t.TextSize = theme.TextSize() - 2
+		t.TextSize = size
 		return t
 	}
 	withMargin := func(o fyne.CanvasObject) fyne.CanvasObject {
@@ -145,7 +169,18 @@ func main() {
 		mainLbl := widget.NewLabel(main)
 		var leftContent fyne.CanvasObject
 		if note != "" {
-			leftContent = container.NewHBox(mainLbl, layout.NewSpacer(), smallLabel(note))
+			avail := width - mainLbl.MinSize().Width - theme.Padding()
+			if avail < 0 {
+				avail = 0
+			}
+			noteLbl := smallLabel(note, avail)
+			noteBox := container.NewVBox(layout.NewSpacer(), container.NewHBox(layout.NewSpacer(), noteLbl))
+			inner := container.NewBorder(nil, nil, mainLbl, nil, noteBox)
+			padR := canvas.NewRectangle(color.Transparent)
+			padR.SetMinSize(fyne.NewSize(theme.Padding()/2, 0))
+			padB := canvas.NewRectangle(color.Transparent)
+			padB.SetMinSize(fyne.NewSize(0, theme.Padding()/2))
+			leftContent = container.NewBorder(nil, padB, nil, padR, inner)
 		} else {
 			leftContent = mainLbl
 		}
