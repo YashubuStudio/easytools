@@ -373,7 +373,7 @@ func main() {
 
 	logView := widget.NewMultiLineEntry()
 	logView.Disable()
-	logView.SetMinRowsVisible(15)
+	logView.SetMinRowsVisible(5)
 	logView.Wrapping = fyne.TextWrapWord
 	go func() {
 		t := time.NewTicker(300 * time.Millisecond)
@@ -547,7 +547,7 @@ func main() {
 	tabs.SetTabLocation(container.TabLocationTop)
 
 	w.SetContent(tabs)
-	w.Resize(fyne.NewSize(1024, 720))
+	w.Resize(fyne.NewSize(1024, 540))
 
 	w.SetCloseIntercept(func() {
 		a.Preferences().SetString("addr", addrEntry.Text)
