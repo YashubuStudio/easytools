@@ -102,9 +102,6 @@ func main() {
 	var buildAccordion func()
 	var runSelect *widget.Select
 	var quickSelect *widget.Select
-	var buildNav func()
-	sidebarOpen := true
-	currentPage := "home"
 
 	// Registry入力
 	groupEntry := widget.NewEntry()
@@ -548,46 +545,14 @@ func main() {
 	)
 	registryBody.Offset = 0.333
 
-	mainHolder := container.NewMax(homeBody)
-	setPage := func(p string) {
-		currentPage = p
-		if p == "home" {
-			mainHolder.Objects = []fyne.CanvasObject{homeBody}
-		} else {
-			mainHolder.Objects = []fyne.CanvasObject{registryBody}
-		}
-		mainHolder.Refresh()
-	}
+	tabs := container.NewAppTabs(
+		container.NewTabItemWithIcon("Server / API", theme.HomeIcon(), homeBody),
+		container.NewTabItemWithIcon("Tools (Registry)", theme.SettingsIcon(), registryBody),
+	)
+	tabs.SetTabLocation(container.TabLocationTop)
 
-	sidebarHolder := container.NewMax()
-	buildNav = func() {
-		if sidebarOpen {
-			btnHome := widget.NewButtonWithIcon("Server / API", theme.HomeIcon(), func() { setPage("home") })
-			btnTools := widget.NewButtonWithIcon("Tools (Registry)", theme.SettingsIcon(), func() { setPage("tools") })
-			if currentPage == "home" {
-				btnHome.Importance = widget.HighImportance
-			} else {
-				btnTools.Importance = widget.HighImportance
-			}
-			toggle := widget.NewButtonWithIcon("Collapse", theme.NavigateBackIcon(), func() { sidebarOpen = false; buildNav() })
-			bar := container.NewVBox(btnHome, btnTools, widget.NewSeparator(), toggle)
-			sidebarHolder.Objects = []fyne.CanvasObject{bar}
-		} else {
-			btnHome := widget.NewButtonWithIcon("", theme.HomeIcon(), func() { setPage("home") })
-			btnTools := widget.NewButtonWithIcon("", theme.SettingsIcon(), func() { setPage("tools") })
-			toggle := widget.NewButtonWithIcon("", theme.NavigateNextIcon(), func() { sidebarOpen = true; buildNav() })
-			bar := container.NewVBox(btnHome, btnTools, widget.NewSeparator(), toggle)
-			bar.Resize(fyne.NewSize(40, bar.MinSize().Height))
-			sidebarHolder.Objects = []fyne.CanvasObject{bar}
-		}
-		sidebarHolder.Refresh()
-	}
-	buildNav()
-
-	root := container.NewBorder(nil, nil, sidebarHolder, nil, mainHolder)
-
-	w.SetContent(root)
-	w.Resize(fyne.NewSize(960, 640))
+	w.SetContent(tabs)
+	w.Resize(fyne.NewSize(1024, 720))
 
 	w.SetCloseIntercept(func() {
 		a.Preferences().SetString("addr", addrEntry.Text)
