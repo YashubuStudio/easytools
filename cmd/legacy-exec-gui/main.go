@@ -12,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"image/color"
-
 	fyne "fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
@@ -30,19 +28,22 @@ import (
 	"github.com/yashubustudio/easytools/internal/util"
 )
 
-// readableTheme overrides disabled text color to improve contrast for log
-// outputs that use disabled widgets.
-type readableTheme struct{ fyne.Theme }
+type logEntry struct{ widget.Entry }
 
-func newReadableTheme() fyne.Theme {
-	return &readableTheme{Theme: theme.DefaultTheme()}
+func newLogEntry() *logEntry {
+	e := &logEntry{}
+	e.MultiLine = true
+	e.ExtendBaseWidget(e)
+	return e
 }
 
-func (t *readableTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
-	if name == theme.ColorNameDisabled {
-		return t.Theme.Color(theme.ColorNameForeground, variant)
+func (e *logEntry) TypedRune(r rune)        {}
+func (e *logEntry) TypedKey(*fyne.KeyEvent) {}
+func (e *logEntry) TypedShortcut(s fyne.Shortcut) {
+	switch s.(type) {
+	case *fyne.ShortcutCopy, *fyne.ShortcutSelectAll:
+		e.Entry.TypedShortcut(s)
 	}
-	return t.Theme.Color(name, variant)
 }
 
 func main() {
@@ -52,7 +53,6 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
 	a := app.NewWithID("legacy.exec.gui")
-	a.Settings().SetTheme(newReadableTheme())
 	w := a.NewWindow("Legacy Exec – Manager")
 
 	// 既定値
@@ -510,8 +510,7 @@ func main() {
 		)),
 	)
 
-	logView := widget.NewMultiLineEntry()
-	logView.Disable()
+	logView := newLogEntry()
 	logView.SetMinRowsVisible(5)
 	logView.Wrapping = fyne.TextWrapWord
 	go func() {
