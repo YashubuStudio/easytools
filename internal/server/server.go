@@ -80,7 +80,8 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	mux.HandleFunc(util.JoinPathLike(cfg.BasePath, cfg.Paths.Tools), wrap(func(w http.ResponseWriter, r *http.Request) {
+	toolsBase := util.JoinPathLike(cfg.BasePath, cfg.Paths.Tools)
+	mux.HandleFunc(toolsBase, wrap(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			util.WriteJSON(w, model.StatusMethodNotAllowed, map[string]any{"error": "method not allowed"})
 			return
@@ -92,6 +93,29 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 		sort.Strings(names)
 		util.WriteJSON(w, model.StatusOK, map[string]any{"tools": names})
 	}))
+
+	if cfg.APIKey == "" {
+		mux.HandleFunc(toolsBase+"/", wrap(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodGet {
+				util.WriteJSON(w, model.StatusMethodNotAllowed, map[string]any{"error": "method not allowed"})
+				return
+			}
+			p := strings.TrimPrefix(r.URL.Path, toolsBase)
+			p = strings.TrimPrefix(p, "/")
+			parts := strings.Split(p, "/")
+			if len(parts) == 0 || parts[len(parts)-1] == "" || len(parts) > 2 {
+				util.WriteJSON(w, model.StatusNotFound, map[string]any{"error": "not found"})
+				return
+			}
+			name := parts[len(parts)-1]
+			if _, ok := cfg.Tools[name]; !ok {
+				util.WriteJSON(w, model.StatusNotFound, map[string]any{"error": "tool not found"})
+				return
+			}
+			res, status, _ := execrunner.RunOnce(r.Context(), cfg, &model.RunRequest{Tool: name})
+			util.WriteJSON(w, status, res)
+		}))
+	}
 
 	mux.HandleFunc(util.JoinPathLike(cfg.BasePath, cfg.Paths.Reload), wrap(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

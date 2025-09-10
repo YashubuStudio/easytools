@@ -31,6 +31,7 @@ Launch the binary to open the GUI. Configure the server address and paths, regis
 |--------|---------------|-----------------------|
 | GET    | `/v1/healthz` | Health check          |
 | GET    | `/v1/tools`   | List registered tools |
+| GET    | `/v1/tools/{group}/{name}` | Execute a tool when no API key |
 | POST   | `/v1/run`     | Execute a tool        |
 | POST   | `/v1/reload`  | Reload configuration  |
 
@@ -40,6 +41,12 @@ Example request:
 curl -X POST 'http://localhost:8080/v1/run' \
   -H 'X-API-Key: devkey' \
   -d '{"tool":"echo","params":{"msg":"hello"}}'
+```
+
+If no API key is configured, a tool can be invoked directly:
+
+```bash
+curl http://localhost:8080/v1/tools/echo
 ```
 
 ## Application Window
@@ -54,7 +61,7 @@ The GUI is split into two main tabs to manage the server and registered tools.
 
 ### Tools (Registry)
 
-- **Tool Form** – left third form to register or edit a tool. Enter name, group, cmd (executable path), args (comma-separated; tokens like `{{msg}}` are replaced with `Params`), working directory, environment variables and safety limits. Buttons allow adding, saving or deleting entries as well as importing or exporting configuration as YAML.
+- **Tool Form** – left third form to register or edit a tool. Enter name, group, cmd (executable path), args (comma-separated; tokens like `{{msg}}` are replaced with `Params`), working directory, environment variables and safety limits. Buttons allow adding, saving or deleting entries as well as importing or exporting configuration as YAML. Changes are automatically saved to `tools.yaml`.
 - **Working Directory** – set `Workdir` to run the command in a specific folder. Commands that depend on location, such as `git`, should have this set to the target repository. If left empty the EasyTools process directory is used.
 - **Tool List** – center accordion listing tools grouped by their `Group` value for quick selection.
 - **Quick CMD** – right third panel to run a selected tool immediately by supplying JSON parameters, environment or stdin and viewing the HTTP response. Intended for manual testing of individual tools.

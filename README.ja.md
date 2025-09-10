@@ -31,6 +31,7 @@ go build -o easytools.exe ./cmd/legacy-exec-gui
 |--------|---------------|-----------------------|
 | GET    | `/v1/healthz` | ヘルスチェック        |
 | GET    | `/v1/tools`   | 登録済みツール一覧    |
+| GET    | `/v1/tools/{group}/{name}` | ツールの実行 (API Key なし) |
 | POST   | `/v1/run`     | ツールの実行          |
 | POST   | `/v1/reload`  | 設定の再読み込み      |
 
@@ -40,6 +41,12 @@ go build -o easytools.exe ./cmd/legacy-exec-gui
 curl -X POST 'http://localhost:8080/v1/run' \
   -H 'X-API-Key: devkey' \
   -d '{"tool":"echo","params":{"msg":"hello"}}'
+```
+
+API キーを設定していない場合は、次のように直接ツールを呼び出せます:
+
+```bash
+curl http://localhost:8080/v1/tools/echo
 ```
 
 ## アプリケーションウィンドウ
@@ -54,7 +61,7 @@ GUI はサーバー管理とツール登録の 2 つのタブで構成されて�
 
 ### Tools (Registry)
 
-- **ツール入力フォーム** – 左 1/3 のフォームでツールの登録・編集を行います。Name、Group、Cmd（実行ファイル）、Args（カンマ区切り。`{{msg}}` のようなトークンは Params で置換）、Workdir、Env、AllowEnv、Timeout、MaxStdout、MaxStderr、Stdin を入力し、Add/Save/Delete や YAML のインポート/エクスポートが利用できます。
+- **ツール入力フォーム** – 左 1/3 のフォームでツールの登録・編集を行います。Name、Group、Cmd（実行ファイル）、Args（カンマ区切り。`{{msg}}` のようなトークンは Params で置換）、Workdir、Env、AllowEnv、Timeout、MaxStdout、MaxStderr、Stdin を入力し、Add/Save/Delete や YAML のインポート/エクスポートが利用できます。変更は自動的に `tools.yaml` に保存されます。
 - **作業ディレクトリ** – Workdir にコマンドを実行するディレクトリを指定できます。`git` のようにディレクトリに依存するコマンドはここにリポジトリのパスなどを設定してください。未指定の場合は EasyTools の起動ディレクトリで実行されます。
 - **ツール一覧** – 中央のアコーディオンで Group ごとにツールが表示され、簡単に選択できます。
 - **Quick CMD** – 右 1/3 のパネルで選択したツールを即座に実行できます。JSON 形式のパラメータ・環境変数・stdin を入力すると HTTP レスポンスが表示され、ツールの動作確認に役立ちます。
