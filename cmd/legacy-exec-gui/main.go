@@ -30,6 +30,21 @@ import (
 	"github.com/yashubustudio/easytools/internal/util"
 )
 
+// readableTheme overrides disabled text color to improve contrast for log
+// outputs that use disabled widgets.
+type readableTheme struct{ fyne.Theme }
+
+func newReadableTheme() fyne.Theme {
+	return &readableTheme{Theme: theme.DefaultTheme()}
+}
+
+func (t *readableTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
+	if name == theme.ColorNameDisabled {
+		return t.Theme.Color(theme.ColorNameForeground, variant)
+	}
+	return t.Theme.Color(name, variant)
+}
+
 func main() {
 	// ログはGUIのテキストエリアにも出す
 	ring := logging.NewLogRing(2000)
@@ -37,6 +52,7 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
 	a := app.NewWithID("legacy.exec.gui")
+	a.Settings().SetTheme(newReadableTheme())
 	w := a.NewWindow("Legacy Exec – Manager")
 
 	// 既定値
@@ -470,8 +486,8 @@ func main() {
 			cmd += fmt.Sprintf(" -H \"X-API-Key: %s\"", k)
 		}
 		bodyEsc := strings.ReplaceAll(string(body), "\"", "\\\"")
-                cmd += fmt.Sprintf(" -d \"%s\"", bodyEsc)
-                a.Clipboard().SetContent(cmd)
+		cmd += fmt.Sprintf(" -d \"%s\"", bodyEsc)
+		a.Clipboard().SetContent(cmd)
 	})
 
 	runLabelWidth := widget.NewLabel("Params").MinSize().Width
@@ -542,10 +558,10 @@ func main() {
 		parsed, _ := url.Parse(u)
 		_ = a.OpenURL(parsed)
 	})
-        copyHealth := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
-                cmd := fmt.Sprintf("curl -s http://localhost%s%s%s", addrEntry.Text, baseEntry.Text, healthEntry.Text)
-                a.Clipboard().SetContent(cmd)
-        })
+	copyHealth := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
+		cmd := fmt.Sprintf("curl -s http://localhost%s%s%s", addrEntry.Text, baseEntry.Text, healthEntry.Text)
+		a.Clipboard().SetContent(cmd)
+	})
 
 	leftForm := widget.NewForm(
 		widget.NewFormItem("Addr", addrEntry),
