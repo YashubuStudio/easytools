@@ -470,8 +470,8 @@ func main() {
 			cmd += fmt.Sprintf(" -H \"X-API-Key: %s\"", k)
 		}
 		bodyEsc := strings.ReplaceAll(string(body), "\"", "\\\"")
-		cmd += fmt.Sprintf(" -d \"%s\"", bodyEsc)
-		a.Driver().Clipboard().SetContent(cmd)
+                cmd += fmt.Sprintf(" -d \"%s\"", bodyEsc)
+                a.Clipboard().SetContent(cmd)
 	})
 
 	runLabelWidth := widget.NewLabel("Params").MinSize().Width
@@ -542,10 +542,10 @@ func main() {
 		parsed, _ := url.Parse(u)
 		_ = a.OpenURL(parsed)
 	})
-	copyHealth := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
-		cmd := fmt.Sprintf("curl -s http://localhost%s%s%s", addrEntry.Text, baseEntry.Text, healthEntry.Text)
-		a.Driver().Clipboard().SetContent(cmd)
-	})
+        copyHealth := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
+                cmd := fmt.Sprintf("curl -s http://localhost%s%s%s", addrEntry.Text, baseEntry.Text, healthEntry.Text)
+                a.Clipboard().SetContent(cmd)
+        })
 
 	leftForm := widget.NewForm(
 		widget.NewFormItem("Addr", addrEntry),
