@@ -14,6 +14,7 @@ import (
 
 	fyne "fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
@@ -117,6 +118,21 @@ func main() {
 	maxErrEntry := widget.NewEntry()
 	maxErrEntry.SetText("2097152")
 	stdinCheck := widget.NewCheck("Allow stdin", nil)
+
+	smallLabel := func(txt string) fyne.CanvasObject {
+		t := canvas.NewText(txt, theme.ForegroundColor())
+		t.TextSize = theme.TextSize() - 2
+		return t
+	}
+	formRow := func(main, note string, w fyne.CanvasObject) fyne.CanvasObject {
+		var left fyne.CanvasObject
+		if note != "" {
+			left = container.NewVBox(widget.NewLabel(main), smallLabel(note))
+		} else {
+			left = widget.NewLabel(main)
+		}
+		return container.NewBorder(nil, nil, left, nil, w)
+	}
 
 	loadTool = func(name string) {
 		t := tools[name]
@@ -363,11 +379,11 @@ func main() {
 
 	testPanel := container.NewBorder(widget.NewLabel("Test Run"), nil, nil, nil,
 		container.NewVBox(
-			container.NewGridWithColumns(2, widget.NewLabel("Tool"), runSelect),
-			container.NewGridWithColumns(2, widget.NewLabel("Params (JSON)"), paramsEntryRun),
-			container.NewGridWithColumns(2, widget.NewLabel("Env (JSON)"), envEntryRun),
-			container.NewGridWithColumns(2, widget.NewLabel("Stdin"), container.NewBorder(nil, doTest, nil, nil, stdinEntryRun)),
-			container.NewGridWithColumns(2, widget.NewLabel("Result"), testOut),
+			formRow("Tool", "", container.NewMax(runSelect)),
+			formRow("Params", "(JSON)", paramsEntryRun),
+			formRow("Env", "(JSON)", envEntryRun),
+			formRow("Stdin", "", container.NewBorder(nil, doTest, nil, nil, stdinEntryRun)),
+			formRow("Result", "", testOut),
 		),
 	)
 
@@ -444,18 +460,18 @@ func main() {
 	homeTop := container.NewGridWithColumns(2, serverPanel, testPanel)
 	homeBody := container.NewBorder(nil, logPanel, nil, nil, homeTop)
 
-	inputForm := widget.NewForm(
-		widget.NewFormItem("Name", nameEntry),
-		widget.NewFormItem("Group", groupEntry),
-		widget.NewFormItem("Cmd", cmdEntry),
-		widget.NewFormItem("Args (comma)", argsEntry),
-		widget.NewFormItem("Workdir", workdirEntry),
-		widget.NewFormItem("Env (KEY=VAL per line)", envEntry),
-		widget.NewFormItem("AllowEnv (comma)", allowEnvEntry),
-		widget.NewFormItem("Timeout", timeoutEntry),
-		widget.NewFormItem("MaxStdout", maxOutEntry),
-		widget.NewFormItem("MaxStderr", maxErrEntry),
-		widget.NewFormItem("Stdin", stdinCheck),
+	inputForm := container.NewVBox(
+		formRow("Name", "", nameEntry),
+		formRow("Group", "", groupEntry),
+		formRow("Cmd", "", cmdEntry),
+		formRow("Args", "(comma)", argsEntry),
+		formRow("Workdir", "", workdirEntry),
+		formRow("Env", "(KEY=VAL per line)", envEntry),
+		formRow("AllowEnv", "(comma)", allowEnvEntry),
+		formRow("Timeout", "", timeoutEntry),
+		formRow("MaxStdout", "", maxOutEntry),
+		formRow("MaxStderr", "", maxErrEntry),
+		formRow("Stdin", "", stdinCheck),
 	)
 	buttonsRow1 := container.NewCenter(container.NewHBox(
 		widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), addTemplate),
@@ -533,12 +549,9 @@ func main() {
 		),
 	)
 
-	// 全体を 左1/3（入力）、中央1/3（ツール一覧）、右1/3（Quick CMD）に並べる（幅変更バーなし）
-	registryBody := container.NewGridWithColumns(3,
-		inputScroll,
-		accHolderCard,
-		quickPanel,
-	)
+	// 入力を広く取り、ツール一覧を狭める
+	registryLeft := container.NewBorder(nil, nil, nil, accHolderCard, inputScroll)
+	registryBody := container.NewBorder(nil, nil, nil, quickPanel, registryLeft)
 
 	tabs := container.NewAppTabs(
 		container.NewTabItemWithIcon("Server / API", theme.HomeIcon(), homeBody),
