@@ -100,6 +100,21 @@ func main() {
 		return ns
 	}
 
+	saveConfig := func() {
+		y := struct {
+			APIKey string                `yaml:"api_key"`
+			Tools  map[string]model.Tool `yaml:"tools"`
+		}{APIKey: keyEntry.Text, Tools: tools}
+		b, err := yaml.Marshal(y)
+		if err != nil {
+			log.Printf("saveConfig: %v\n", err)
+			return
+		}
+		if err := os.WriteFile("tools.yaml", b, 0o600); err != nil {
+			log.Printf("saveConfig: %v\n", err)
+		}
+	}
+
 	// 前方宣言
 	var selected string
 	var loadTool func(name string)
@@ -265,6 +280,7 @@ func main() {
 			if y.APIKey != "" {
 				keyEntry.SetText(y.APIKey)
 			}
+			saveConfig()
 		}, w)
 		fd.SetFilter(storage.NewExtensionFileFilter([]string{".yaml", ".yml"}))
 		fd.Show()
@@ -319,6 +335,7 @@ func main() {
 		selected = name
 		buildAccordion()
 		refreshSelectors()
+		saveConfig()
 	}
 
 	delTool := func() {
@@ -338,6 +355,7 @@ func main() {
 		allowEnvEntry.SetText("")
 		timeoutEntry.SetText("30s")
 		stdinCheck.SetChecked(false)
+		saveConfig()
 	}
 
 	accHolder := container.NewMax()
@@ -432,6 +450,29 @@ func main() {
 			fyne.Do(func() { testOut.SetText(fmt.Sprintf("HTTP %d\n%s", resp.StatusCode, string(b))) })
 		}()
 	})
+	copyTest := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
+		if runSelect.Selected == "" {
+			dialog.ShowInformation("Copy", "select a tool", w)
+			return
+		}
+		var p map[string]any
+		var e map[string]string
+		if txt := strings.TrimSpace(paramsEntryRun.Text); txt != "" {
+			_ = json.Unmarshal([]byte(txt), &p)
+		}
+		if txt := strings.TrimSpace(envEntryRun.Text); txt != "" {
+			_ = json.Unmarshal([]byte(txt), &e)
+		}
+		body, _ := json.Marshal(model.RunRequest{Tool: runSelect.Selected, Params: p, Env: e, Stdin: stdinEntryRun.Text})
+		urlStr := fmt.Sprintf("http://localhost%s%s%s", addrEntry.Text, baseEntry.Text, runEntry.Text)
+		cmd := fmt.Sprintf("curl -X POST \"%s\" -H \"Content-Type: application/json\"", urlStr)
+		if k := strings.TrimSpace(keyEntry.Text); k != "" {
+			cmd += fmt.Sprintf(" -H \"X-API-Key: %s\"", k)
+		}
+		bodyEsc := strings.ReplaceAll(string(body), "\"", "\\\"")
+		cmd += fmt.Sprintf(" -d \"%s\"", bodyEsc)
+		a.Driver().Clipboard().SetContent(cmd)
+	})
 
 	runLabelWidth := widget.NewLabel("Params").MinSize().Width
 	testPanel := container.NewBorder(widget.NewLabel("Test Run"), nil, nil, nil,
@@ -439,7 +480,7 @@ func main() {
 			formRow("Tool", "", container.NewMax(runSelect), runLabelWidth),
 			formRow("Params", "(JSON)", paramsEntryRun, runLabelWidth),
 			formRow("Env", "(JSON)", envEntryRun, runLabelWidth),
-			formRow("Stdin", "", container.NewBorder(nil, doTest, nil, nil, stdinEntryRun), runLabelWidth),
+			formRow("Stdin", "", container.NewBorder(nil, container.NewHBox(doTest, copyTest), nil, nil, stdinEntryRun), runLabelWidth),
 			formRow("Result", "", testOut, runLabelWidth),
 		)),
 	)
@@ -501,6 +542,10 @@ func main() {
 		parsed, _ := url.Parse(u)
 		_ = a.OpenURL(parsed)
 	})
+	copyHealth := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
+		cmd := fmt.Sprintf("curl -s http://localhost%s%s%s", addrEntry.Text, baseEntry.Text, healthEntry.Text)
+		a.Driver().Clipboard().SetContent(cmd)
+	})
 
 	leftForm := widget.NewForm(
 		widget.NewFormItem("Addr", addrEntry),
@@ -516,7 +561,7 @@ func main() {
 
 	// 入力は縦一列（左1/2）
 	serverButtons := container.NewHBox(
-		startBtn, stopBtn, openHealth,
+		startBtn, stopBtn, openHealth, copyHealth,
 	)
 	serverPanel := container.NewVBox(
 		widget.NewLabel("Server / API"),
@@ -636,6 +681,7 @@ func main() {
 	w.Resize(fyne.NewSize(1024, 540))
 
 	w.SetCloseIntercept(func() {
+		saveConfig()
 		a.Preferences().SetString("addr", addrEntry.Text)
 		a.Preferences().SetString("base", baseEntry.Text)
 		a.Preferences().SetString("path.run", runEntry.Text)
