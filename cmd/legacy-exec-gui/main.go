@@ -477,6 +477,8 @@ func main() {
 			dialog.ShowError(err, w)
 			return
 		}
+		startBtn.Disable()
+		stopBtn.Enable()
 		statusLbl.SetText("Server: running on " + cfg.Addr)
 	})
 	stopBtn := widget.NewButtonWithIcon("Stop Server", theme.MediaStopIcon(), func() {
@@ -484,8 +486,11 @@ func main() {
 			dialog.ShowError(err, w)
 			return
 		}
+		stopBtn.Disable()
+		startBtn.Enable()
 		statusLbl.SetText("Server: stopped")
 	})
+	stopBtn.Disable()
 	openHealth := widget.NewButton("Open Health", func() {
 		u := fmt.Sprintf("http://localhost%s%s%s", addrEntry.Text, baseEntry.Text, healthEntry.Text)
 		parsed, _ := url.Parse(u)
