@@ -65,6 +65,7 @@ func main() {
 	defKey := a.Preferences().StringWithFallback("api_key", "devkey")
 	defCORS := a.Preferences().BoolWithFallback("cors", true)
 	defCORSOrigin := a.Preferences().StringWithFallback("cors_origin", "*")
+	defListenAll := a.Preferences().BoolWithFallback("listen_all", false)
 
 	// サーバ設定 Entry
 	addrEntry := widget.NewEntry()
@@ -85,6 +86,14 @@ func main() {
 	corsCheck.SetChecked(defCORS)
 	corsOriginEntry := widget.NewEntry()
 	corsOriginEntry.SetText(defCORSOrigin)
+	listenAllCheck := widget.NewCheck("0.0.0.0", nil)
+	listenAllCheck.SetChecked(defListenAll)
+	hostAddr := func() string {
+		if listenAllCheck.Checked {
+			return "0.0.0.0"
+		}
+		return "localhost"
+	}
 
 	// 状態
 	var srv server.LegacyServer
@@ -527,7 +536,7 @@ func main() {
 
 	startBtn = widget.NewButtonWithIcon("Start Server", theme.MediaPlayIcon(), func() {
 		cfg := &model.ServerConfig{
-			Addr:       strings.TrimSpace(addrEntry.Text),
+			Addr:       hostAddr() + strings.TrimSpace(addrEntry.Text),
 			BasePath:   strings.TrimSpace(baseEntry.Text),
 			APIKey:     keyEntry.Text,
 			CORS:       corsCheck.Checked,
@@ -565,6 +574,7 @@ func main() {
 
 	leftForm := widget.NewForm(
 		widget.NewFormItem("Addr", addrEntry),
+		widget.NewFormItem("Host", listenAllCheck),
 		widget.NewFormItem("BasePath", baseEntry),
 		widget.NewFormItem("Run", runEntry),
 		widget.NewFormItem("Tools", toolsEntry),
@@ -707,6 +717,7 @@ func main() {
 		a.Preferences().SetString("api_key", keyEntry.Text)
 		a.Preferences().SetBool("cors", corsCheck.Checked)
 		a.Preferences().SetString("cors_origin", corsOriginEntry.Text)
+		a.Preferences().SetBool("listen_all", listenAllCheck.Checked)
 		_ = srv.Stop()
 		w.Close()
 	})
