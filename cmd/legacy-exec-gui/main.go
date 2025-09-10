@@ -463,7 +463,12 @@ func main() {
 	}()
 	logPanel := container.NewBorder(widget.NewLabel("Server Logs"), nil, nil, nil, logView)
 
-	startBtn := widget.NewButtonWithIcon("Start Server", theme.MediaPlayIcon(), func() {
+	var (
+		startBtn *widget.Button
+		stopBtn  *widget.Button
+	)
+
+	startBtn = widget.NewButtonWithIcon("Start Server", theme.MediaPlayIcon(), func() {
 		cfg := &model.ServerConfig{
 			Addr:       strings.TrimSpace(addrEntry.Text),
 			BasePath:   strings.TrimSpace(baseEntry.Text),
@@ -481,7 +486,7 @@ func main() {
 		stopBtn.Enable()
 		statusLbl.SetText("Server: running on " + cfg.Addr)
 	})
-	stopBtn := widget.NewButtonWithIcon("Stop Server", theme.MediaStopIcon(), func() {
+	stopBtn = widget.NewButtonWithIcon("Stop Server", theme.MediaStopIcon(), func() {
 		if err := srv.Stop(); err != nil {
 			dialog.ShowError(err, w)
 			return
