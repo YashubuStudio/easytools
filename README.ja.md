@@ -16,7 +16,7 @@ Go 1.24.5 と Fyne GUI ツールキットが必要です。
 
 ```bash
 go mod tidy
-go build -o easytools ./cmd/legacy-exec-gui
+go build -o easytools.exe ./cmd/legacy-exec-gui
 ```
 
 ## 実行
