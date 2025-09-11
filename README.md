@@ -93,5 +93,5 @@ tools:
 Select `repo-status` in **Quick CMD** and send a request to `/run` to retrieve the repository status.
 
 ## License
-MIT
+Personal use is free of charge and at your own risk. Please contact the author for commercial use. Bug reports and other feedback are welcome. See [LICENSE](LICENSE) for details.
 
