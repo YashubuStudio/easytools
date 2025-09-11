@@ -46,9 +46,16 @@ func defaultSafeEnv() []string {
 	if p := os.Getenv("PATH"); p != "" {
 		vars = append(vars, "PATH="+p)
 	}
+	if h := os.Getenv("HOME"); h != "" {
+		vars = append(vars, "HOME="+h)
+	}
 	if runtime.GOOS == "windows" {
 		if c := os.Getenv("COMSPEC"); c != "" {
 			vars = append(vars, "COMSPEC="+c)
+		}
+	} else {
+		if sh := os.Getenv("SHELL"); sh != "" {
+			vars = append(vars, "SHELL="+sh)
 		}
 	}
 	return vars

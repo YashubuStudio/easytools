@@ -14,9 +14,16 @@ EasyTools wraps legacy command-line programs and exposes them as HTTP APIs. It s
 ## Build
 Requires Go 1.24.5 and the Fyne GUI toolkit.
 
+### Windows
 ```bash
 go mod tidy
 go build -o easytools.exe ./cmd/legacy-exec-gui
+```
+
+### Linux
+```bash
+go mod tidy
+go build -o easytools ./cmd/legacy-exec-gui
 ```
 
 ## Run
