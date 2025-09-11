@@ -16,7 +16,7 @@ Requires Go 1.24.5 and the Fyne GUI toolkit.
 
 ```bash
 go mod tidy
-go build -o easytools.exe ./cmd/legacy-exec-gui
+go build -o easytools ./cmd/legacy-exec-gui
 ```
 
 ## Run
