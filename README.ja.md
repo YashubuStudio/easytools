@@ -14,6 +14,13 @@ EasyTools は既存のコマンドラインプログラムをラップして HTT
 ## ビルド
 Go 1.24.5 と Fyne GUI ツールキットが必要です。
 
+### Windows
+```bash
+go mod tidy
+go build -o easytools ./cmd/legacy-exec-gui
+```
+
+### Linux
 ```bash
 go mod tidy
 go build -o easytools ./cmd/legacy-exec-gui
