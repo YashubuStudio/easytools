@@ -48,6 +48,8 @@
 | Tools | ツール一覧パス | `/tools` エンドポイントのパス。 |
 | Reload | 再読み込みパス | `/reload` エンドポイントのパス。 |
 | Health | ヘルスチェックパス | `/health` エンドポイントのパス。 |
+| MCPPackage | MCP パッケージ | `/mcp/package` エンドポイントのパス。登録ツールのマニフェストを返す。 |
+| MCPInvoke | MCP 実行パス | `/mcp/run` エンドポイントのパス。MCP 形式の入力を受け付ける。 |
 
 ## ServerConfig
 

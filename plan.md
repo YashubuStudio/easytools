@@ -189,6 +189,8 @@ ServerConfig:
 | GET  | `{base}{/tools}`   | ツール名一覧（文字列配列）   | 要（X-API-Key）※CORS可 |
 | POST | `{base}{/reload}`  | 将来拡張用（OKを返すダミー） | 要                  |
 | POST | `{base}{/run}`     | ツール実行           | 要                  |
+| GET  | `{base}{/mcp_package}` | MCP 用マニフェスト生成 | 要                  |
+| POST | `{base}{/mcp_run}` | MCP 形式入力でのツール実行 | 要                  |
 
 * **認証**: `X-API-Key: <value>` ヘッダ。空なら無効（オープン）。
 * **CORS**: `Access-Control-Allow-Origin: *` 等を返却（GUI設定に依存）。

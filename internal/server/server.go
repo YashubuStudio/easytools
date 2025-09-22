@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/yashubustudio/easytools/internal/execrunner"
+	"github.com/yashubustudio/easytools/internal/mcp"
 	"github.com/yashubustudio/easytools/internal/model"
 	"github.com/yashubustudio/easytools/internal/util"
 )
@@ -49,6 +50,12 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 	}
 	if cfg.Paths.Health == "" {
 		cfg.Paths.Health = "/healthz"
+	}
+	if cfg.Paths.MCPPackage == "" {
+		cfg.Paths.MCPPackage = "/mcp/package"
+	}
+	if cfg.Paths.MCPInvoke == "" {
+		cfg.Paths.MCPInvoke = "/mcp/run"
 	}
 
 	mux := http.NewServeMux()
@@ -137,6 +144,34 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 		}
 		res, status, _ := execrunner.RunOnce(r.Context(), cfg, &req)
 		util.WriteJSON(w, status, res)
+	}))
+
+	mux.HandleFunc(util.JoinPathLike(cfg.BasePath, cfg.Paths.MCPPackage), wrap(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			util.WriteJSON(w, model.StatusMethodNotAllowed, map[string]any{"error": "method not allowed"})
+			return
+		}
+		pkg := mcp.BuildPackage(cfg)
+		util.WriteJSON(w, model.StatusOK, pkg)
+	}))
+
+	mux.HandleFunc(util.JoinPathLike(cfg.BasePath, cfg.Paths.MCPInvoke), wrap(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			util.WriteJSON(w, model.StatusMethodNotAllowed, map[string]any{"error": "method not allowed"})
+			return
+		}
+		var invokeReq mcp.InvokeRequest
+		if err := jsonNewDecoderMax(r, 2<<20).Decode(&invokeReq); err != nil {
+			util.WriteJSON(w, model.StatusBadRequest, map[string]any{"error": err.Error()})
+			return
+		}
+		runReq, err := invokeReq.ToRunRequest()
+		if err != nil {
+			util.WriteJSON(w, model.StatusBadRequest, map[string]any{"error": err.Error()})
+			return
+		}
+		res, status, _ := execrunner.RunOnce(r.Context(), cfg, runReq)
+		util.WriteJSON(w, status, mcp.BuildResponse(res))
 	}))
 
 	s.cfg = cfg

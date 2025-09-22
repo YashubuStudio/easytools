@@ -34,13 +34,15 @@ go build -o easytools ./cmd/legacy-exec-gui
 
 Launch the binary to open the GUI. Configure the server address and paths, register tools and click **Start Server**. When running, the following endpoints become available (defaults shown):
 
-| Method | Path          | Description           |
-|--------|---------------|-----------------------|
-| GET    | `/v1/healthz` | Health check          |
-| GET    | `/v1/tools`   | List registered tools |
-| GET    | `/v1/tools/{group}/{name}` | Execute a tool when no API key |
-| POST   | `/v1/run`     | Execute a tool        |
-| POST   | `/v1/reload`  | Reload configuration  |
+| Method | Path                     | Description                                 |
+|--------|--------------------------|---------------------------------------------|
+| GET    | `/v1/healthz`            | Health check                                |
+| GET    | `/v1/tools`              | List registered tools                       |
+| GET    | `/v1/tools/{group}/{name}` | Execute a tool when no API key             |
+| POST   | `/v1/run`                | Execute a tool                              |
+| POST   | `/v1/reload`             | Reload configuration                        |
+| GET    | `/v1/mcp/package`        | Return an MCP manifest for registered tools |
+| POST   | `/v1/mcp/run`            | Execute a tool via the MCP request format   |
 
 Each endpoint path is configurable via the `paths` section in the server configuration. Defaults and roles:
 
@@ -49,6 +51,8 @@ Each endpoint path is configurable via the `paths` section in the server configu
 - **`paths.run`** (`/run`): `POST` executes a tool specified in the JSON request body.
 - **`paths.reload`** (`/reload`): `POST` reloads `tools.yaml` without restarting the server.
 - **`paths.health`** (`/healthz`): `GET` health probe returning server status.
+- **`paths.mcp_package`** (`/mcp/package`): `GET` manifest describing every tool as an MCP package.
+- **`paths.mcp_invoke`** (`/mcp/run`): `POST` endpoint that accepts the MCP invocation payload and returns a single consolidated response.
 
 Example request:
 
@@ -56,6 +60,44 @@ Example request:
 curl -X POST 'http://localhost:8080/v1/run' \
   -H 'X-API-Key: devkey' \
   -d '{"tool":"echo","params":{"msg":"hello"}}'
+```
+
+MCP request and response example:
+
+```bash
+curl -X POST 'http://localhost:8080/v1/mcp/run' \
+  -H 'X-API-Key: devkey' \
+  -d '{
+        "name": "echo",
+        "input": {
+          "params": {"msg": "hello"}
+        }
+      }'
+```
+
+The server returns a single JSON object:
+
+```json
+{
+  "name": "echo",
+  "success": true,
+  "output": {
+    "command": ["/usr/bin/echo", "hello"],
+    "exit_code": 0,
+    "stdout": "hello\n",
+    "stderr": "",
+    "duration_ms": 5,
+    "timed_out": false,
+    "started_at": "2025-09-10T07:42:22Z",
+    "ended_at": "2025-09-10T07:42:22Z"
+  }
+}
+```
+
+Fetch the MCP package manifest at:
+
+```bash
+curl -X GET 'http://localhost:8080/v1/mcp/package' -H 'X-API-Key: devkey'
 ```
 
 If no API key is configured, a tool can be invoked directly:

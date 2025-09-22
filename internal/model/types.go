@@ -38,10 +38,12 @@ type RunResponse struct {
 }
 
 type Paths struct {
-	Run    string `yaml:"run"`
-	Tools  string `yaml:"tools"`
-	Reload string `yaml:"reload"`
-	Health string `yaml:"health"`
+	Run        string `yaml:"run"`
+	Tools      string `yaml:"tools"`
+	Reload     string `yaml:"reload"`
+	Health     string `yaml:"health"`
+	MCPPackage string `yaml:"mcp_package"`
+	MCPInvoke  string `yaml:"mcp_invoke"`
 }
 
 type ServerConfig struct {

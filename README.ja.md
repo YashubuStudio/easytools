@@ -34,13 +34,15 @@ go build -o easytools ./cmd/legacy-exec-gui
 
 バイナリを起動すると GUI が開きます。サーバーアドレスやパスを設定し、ツールを登録して **Start Server** をクリックしてください。実行中は以下のエンドポイントが利用できます（デフォルト値を表示）。
 
-| Method | Path          | Description           |
-|--------|---------------|-----------------------|
-| GET    | `/v1/healthz` | ヘルスチェック        |
-| GET    | `/v1/tools`   | 登録済みツール一覧    |
-| GET    | `/v1/tools/{group}/{name}` | ツールの実行 (API Key なし) |
-| POST   | `/v1/run`     | ツールの実行          |
-| POST   | `/v1/reload`  | 設定の再読み込み      |
+| Method | Path                     | Description                         |
+|--------|--------------------------|-------------------------------------|
+| GET    | `/v1/healthz`            | ヘルスチェック                      |
+| GET    | `/v1/tools`              | 登録済みツール一覧                  |
+| GET    | `/v1/tools/{group}/{name}` | ツールの実行 (API Key なし)       |
+| POST   | `/v1/run`                | ツールの実行                        |
+| POST   | `/v1/reload`             | 設定の再読み込み                    |
+| GET    | `/v1/mcp/package`        | 登録ツールを MCP パッケージ形式で取得 |
+| POST   | `/v1/mcp/run`            | MCP 形式の入力でツールを実行           |
 
 各エンドポイントのパスはサーバー設定の `paths` セクションで変更できます。デフォルト値と役割は以下の通りです:
 
@@ -49,6 +51,8 @@ go build -o easytools ./cmd/legacy-exec-gui
 - **`paths.run`** (`/run`): `POST` の JSON 本文で指定されたツールを実行。
 - **`paths.reload`** (`/reload`): `POST` で `tools.yaml` を再読み込み。
 - **`paths.health`** (`/healthz`): `GET` でサーバー状態を返すヘルスチェック。
+- **`paths.mcp_package`** (`/mcp/package`): `GET` で登録ツールを MCP パッケージとして返すマニフェスト。
+- **`paths.mcp_invoke`** (`/mcp/run`): `POST` で MCP 入力形式の一括リクエストを受け取り、単一 JSON レスポンスを返します。
 
 リクエスト例:
 
@@ -56,6 +60,44 @@ go build -o easytools ./cmd/legacy-exec-gui
 curl -X POST 'http://localhost:8080/v1/run' \
   -H 'X-API-Key: devkey' \
   -d '{"tool":"echo","params":{"msg":"hello"}}'
+```
+
+MCP リクエストとレスポンスの例:
+
+```bash
+curl -X POST 'http://localhost:8080/v1/mcp/run' \
+  -H 'X-API-Key: devkey' \
+  -d '{
+        "name": "echo",
+        "input": {
+          "params": {"msg": "hello"}
+        }
+      }'
+```
+
+レスポンスは次の 1 つの JSON にまとまります:
+
+```json
+{
+  "name": "echo",
+  "success": true,
+  "output": {
+    "command": ["/usr/bin/echo", "hello"],
+    "exit_code": 0,
+    "stdout": "hello\n",
+    "stderr": "",
+    "duration_ms": 5,
+    "timed_out": false,
+    "started_at": "2025-09-10T07:42:22Z",
+    "ended_at": "2025-09-10T07:42:22Z"
+  }
+}
+```
+
+MCP パッケージのマニフェストは以下で取得できます:
+
+```bash
+curl -X GET 'http://localhost:8080/v1/mcp/package' -H 'X-API-Key: devkey'
 ```
 
 API キーを設定していない場合は、次のように直接ツールを呼び出せます:
