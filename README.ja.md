@@ -2,80 +2,60 @@
 
 *English version: [README.md](README.md)*
 
-EasyTools は既存のコマンドラインプログラムをラップして HTTP API として公開するツールです。デスクトップGUIを備えており、ツールの登録・編集・テストを行いながら組み込みHTTPサーバーを制御できます。設定は YAML としてインポート・エクスポート可能です。
+EasyTools はエージェントからの呼び出しを Model Context Protocol (MCP) として受け付け、サンドボックス化したコマンド実行を提供する軽量フレームワークです。JSON 形式で渡された入力から事前に定義されたフィールドのみを抽出し、登録済み API と突き合わせて安全にコマンドを起動します。レスポンスは検証とマスク処理を経て返送されるため、秘匿情報を含むワークフローでも安心して利用できます。
 
-## 機能
-- 既存のスクリプトやバイナリを登録し、設定可能な HTTP エンドポイントとして公開
-- デスクトップGUI (Fyne) でツールの追加/編集、サーバーの開始/停止、簡易テスト
-- ツール毎にタイムアウト、環境変数ホワイトリスト、stdout/stderr サイズ上限、任意の stdin などの安全機能
-- ログビューアとテストコンソールを内蔵し即時フィードバック
-- 設定を `tools.yaml` としてインポート/エクスポート
+## 特長
+- **MCP エンドポイント** – `/v1/mcp/run` で実行、`/v1/mcp/package` で登録 API 記述子を配信。名称・引数・制約・リクエスト/レスポンス例・自然言語による解説を含むディスクリプタを提供します。
+- **セキュアなコマンド実行** – 未登録コマンド、シェル解釈（パイプ・リダイレクト）、`sudo`、任意プロセス起動はブロック。一般ユーザ権限で実行し、時間・メモリ・入出力パスを制限します。
+- **登録 API ごとの詳細設定** – ワーキングディレクトリ、コマンド名、タイムアウト、環境変数などを CLI から細かく設定可能。エージェント向けの入力検証とマスク機構を備えています。
+- **ローカルネットワーク配信対応** – CORS と API キー認証を設定でき、LAN 内の複数クライアントから安全に呼び出せます。
+- **軽量な Go 製実装** – 依存関係を最小化し、各 OS 向けバイナリを用意。再現性確保のため実装・設定手順、API スキーマ、実験スクリプトをリポジトリに公開し、コミット ID を固定して検証可能です。
 
 ## ビルド
 Go 1.24.5 と Fyne GUI ツールキットが必要です。
 
-### Windows
 ```bash
 go mod tidy
 go build -o easytools ./cmd/easytools
 ```
 
-### Linux
-```bash
-go mod tidy
-go build -o easytools ./cmd/easytools
-```
-
-## 実行
+## CLI とサーバーの起動
 
 ```bash
-./easytools
+./easytools --server \
+  --config /path/to/tools.yaml \
+  --addr :8080
 ```
 
-フラグなしで起動すると（デスクトップではダブルクリックで）GUI が開きます。`DISPLAY` が無い SSH 環境などヘッドレス環境では自動的に CLI モードへフォールバックし、GUI の代わりに HTTP サーバーを起動します。手動で制御したい場合は以下のフラグを利用してください。
+GUI が利用できる環境ではダブルクリックまたはフラグなし起動で管理画面が開きます。GUI/CLI どちらでも `tools.yaml` を読み書きし、コマンドライン引数が優先されます。
 
-```bash
-./easytools --server           # HTTP サーバーのみ起動
-sudo ./easytools --webui       # サーバーを起動し、127.0.0.1:18080 に設定用 Web UI を開く
-./easytools --config /path/to/tools.yaml --addr :9090
-```
+CLI では登録 API ごとに以下を設定できます:
 
-CLI は GUI と同じ `tools.yaml` を読み書きし、コマンドラインで指定した値を優先します。`--webui` で有効になる Web UI は YAML を編集するための簡易設定画面で、管理者権限での利用を想定しています。
+- `cmd` / `args`: 実行するコマンドと固定引数（シェル解釈は無効）
+- `workdir`: 作業ディレクトリ
+- `timeout`: タイムアウト（ミリ秒）
+- `env` / `allow_env`: 事前設定とホワイトリスト型の環境変数
+- `stdin`: 標準入力の許可有無と初期値
+- `limits`: 実行時間・メモリ・入出力サイズの上限
 
-GUI または CLI モードでサーバーアドレスやパスを設定し、ツールを登録して **Start Server** をクリックしてください。実行中は以下のエンドポイントが利用できます（デフォルト値を表示）。
+## HTTP エンドポイント
 
-| Method | Path                     | Description                         |
-|--------|--------------------------|-------------------------------------|
-| GET    | `/v1/healthz`            | ヘルスチェック                      |
-| GET    | `/v1/tools`              | 登録済みツール一覧                  |
-| GET    | `/v1/tools/{group}/{name}` | ツールの実行 (API Key なし)       |
-| POST   | `/v1/run`                | ツールの実行                        |
-| POST   | `/v1/reload`             | 設定の再読み込み                    |
-| GET    | `/v1/mcp/package`        | 登録ツールを MCP パッケージ形式で取得 |
-| POST   | `/v1/mcp/run`            | MCP 形式の入力でツールを実行           |
+| Method | Path | 説明 |
+| --- | --- | --- |
+| `POST` | `/v1/mcp/run` | MCP 仕様の JSON 入力を検証し、対応する登録 API をサンドボックスで実行します。|
+| `GET` | `/v1/mcp/package` | 利用可能な API のディスクリプタ一覧（名称、引数、制約、例、自然言語解説）を返します。|
+| `POST` | `/v1/run` | MCP 以外のシンプルな JSON リクエストでコマンドを実行します。|
+| `GET` | `/v1/tools` | 登録済みツール一覧を返します。|
+| `POST` | `/v1/reload` | `tools.yaml` を再読み込みします。|
+| `GET` | `/v1/healthz` | サーバーのヘルスチェック。|
 
-各エンドポイントのパスはサーバー設定の `paths` セクションで変更できます。デフォルト値と役割は以下の通りです:
+すべてのエンドポイントは `base_path` と `paths.*` の設定で変更可能です。API キー認証は `X-API-Key` ヘッダで行い、CORS を有効にすると `Access-Control-Allow-*` ヘッダが追加されます。
 
-- **`base_path`** (`/v1`): すべてのエンドポイントに付与されるプレフィックス。
-- **`paths.tools`** (`/tools`): `GET` で登録済みツール一覧。`GET /{group}/{name}` は API キー未設定時に単一ツールを実行。
-- **`paths.run`** (`/run`): `POST` の JSON 本文で指定されたツールを実行。
-- **`paths.reload`** (`/reload`): `POST` で `tools.yaml` を再読み込み。
-- **`paths.health`** (`/healthz`): `GET` でサーバー状態を返すヘルスチェック。
-- **`paths.mcp_package`** (`/mcp/package`): `GET` で登録ツールを MCP パッケージとして返すマニフェスト。
-- **`paths.mcp_invoke`** (`/mcp/run`): `POST` で MCP 入力形式の一括リクエストを受け取り、単一 JSON レスポンスを返します。
-
-リクエスト例:
-
-```bash
-curl -X POST 'http://localhost:8080/v1/run' \
-  -H 'X-API-Key: devkey' \
-  -d '{"tool":"echo","params":{"msg":"hello"}}'
-```
-
-MCP リクエストとレスポンスの例:
+### MCP リクエスト例
 
 ```bash
 curl -X POST 'http://localhost:8080/v1/mcp/run' \
+  -H 'Content-Type: application/json' \
   -H 'X-API-Key: devkey' \
   -d '{
         "name": "echo",
@@ -85,72 +65,25 @@ curl -X POST 'http://localhost:8080/v1/mcp/run' \
       }'
 ```
 
-レスポンスは次の 1 つの JSON にまとまります:
+レスポンスは検証後の JSON を 1 件返し、マスク対象の値は自動的に伏字化されます。
 
-```json
-{
-  "name": "echo",
-  "success": true,
-  "output": {
-    "command": ["/usr/bin/echo", "hello"],
-    "exit_code": 0,
-    "stdout": "hello\n",
-    "stderr": "",
-    "duration_ms": 5,
-    "timed_out": false,
-    "started_at": "2025-09-10T07:42:22Z",
-    "ended_at": "2025-09-10T07:42:22Z"
-  }
-}
-```
-
-MCP パッケージのマニフェストは以下で取得できます:
+### MCP パッケージ例
 
 ```bash
-curl -X GET 'http://localhost:8080/v1/mcp/package' -H 'X-API-Key: devkey'
+curl -H 'X-API-Key: devkey' \
+  http://localhost:8080/v1/mcp/package
 ```
 
-API キーを設定していない場合は、次のように直接ツールを呼び出せます:
+結果には API 名称、引数定義、制約、サンプルリクエスト/レスポンス、自然言語解説（任意）が含まれます。
 
-```bash
-curl http://localhost:8080/v1/tools/echo
-```
+## 安全性とサンドボックス
+- 実行するプロセスは一般ユーザ権限のみ。`sudo` や任意 UID の昇格は不可。
+- シェル構文（パイプ・リダイレクト・サブシェルなど）は解釈せず、登録済みバイナリのみを直接起動。
+- リソース上限（時間・メモリ・標準入出力サイズ）を設定し、制限値を超えると強制終了します。
+- 入出力は事前に登録されたパスのみ許可され、サンドボックス外への書き込みを防ぎます。
 
-## アプリケーションウィンドウ
-
-GUI はサーバー管理とツール登録の 2 つのタブで構成されています。
-
-### Server / API
-
-- **サーバー設定** – 左側の入力欄でアドレスやベースパス、各エンドポイント、API キー、CORS の有効/無効とオリジンを設定します。**Start Server**/**Stop Server** ボタンで HTTP サーバーを制御し、上部に状態が表示されます。
-- **テストコンソール** – 右側のパネルでツールを選択し、JSON 形式のパラメータや環境変数を入力して `/run` へテストリクエストを送ります。結果はボタン下に表示されます。
-- **サーバーログ** – 下部の領域でリアルタイムのログを確認できます。
-
-### Tools (Registry)
-
-- **ツール入力フォーム** – 左 1/3 のフォームでツールの登録・編集を行います。Name、Group、Cmd（実行ファイル）、Args（カンマ区切り。`{{msg}}` のようなトークンは Params で置換）、Workdir、Env、AllowEnv、Timeout、MaxStdout、MaxStderr、Stdin を入力し、Add/Save/Delete や YAML のインポート/エクスポートが利用できます。変更は自動的に `tools.yaml` に保存されます。
-- **作業ディレクトリ** – Workdir にコマンドを実行するディレクトリを指定できます。`git` のようにディレクトリに依存するコマンドはここにリポジトリのパスなどを設定してください。未指定の場合は EasyTools の起動ディレクトリで実行されます。
-- **ツール一覧** – 中央のアコーディオンで Group ごとにツールが表示され、簡単に選択できます。
-- **Quick CMD** – 右 1/3 のパネルで選択したツールを即座に実行できます。JSON 形式のパラメータ・環境変数・stdin を入力すると HTTP レスポンスが表示され、ツールの動作確認に役立ちます。
-  - `Params (JSON)` に入力した値は Args 内の `{{名前}}` トークンを置換します。
-  - `Env (JSON)` は AllowEnv に指定されたキーのみ環境変数として適用されます。
-  - `Stdin` は Allow Stdin が有効な場合に標準入力へ渡されます。
-  - 例: `Cmd: /usr/bin/echo`, `Args: ["{{msg}}"]` のツールで `Params: {"msg":"hello"}` を入力すると `/usr/bin/echo hello` が実行されます。
-
-### git コマンドの例
-
-GitHub ユーザーに馴染みのある `git status` を HTTP API として公開する設定例です。
-
-```yaml
-tools:
-  repo-status:
-    cmd: git
-    args: ["status", "--short"]
-    workdir: /path/to/repository
-```
-
-GUI の **Quick CMD** で `repo-status` を選び、`/run` へリクエストを送るとリポジトリの状態を取得できます。
+## 再現性の確保
+ビルド手順、設定例、API 記述子スキーマ、評価用スクリプトはリポジトリに同梱されています。ドキュメントでは検証に使用したコミット ID を固定し、移植性と軽量性を重視した Go 実装を各 OS 向けバイナリとして提供します。
 
 ## ライセンス
-個人利用は自由（無償）で行えますが、使用に伴う責任はすべて利用者にあります。商用利用をご希望の際は事前にご連絡ください。バグやエラーなどがありましたら、お気軽にコメントをお寄せください。詳細は [LICENSE](LICENSE) をご覧ください。
-
+詳細は [LICENSE](LICENSE) を参照してください。
