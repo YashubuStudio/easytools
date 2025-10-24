@@ -71,7 +71,7 @@ func Run() {
 	}
 	defBase := strings.TrimSpace(cfgFile.BasePath)
 	if defBase == "" {
-		defBase = a.Preferences().StringWithFallback("base", "/v1")
+		defBase = a.Preferences().StringWithFallback("base", "/")
 	} else {
 		a.Preferences().SetString("base", defBase)
 	}

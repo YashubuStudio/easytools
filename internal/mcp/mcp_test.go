@@ -133,13 +133,13 @@ func TestBuildPackage(t *testing.T) {
 
 func TestBuildPackageDefaults(t *testing.T) {
 	pkg := BuildPackage(nil)
-	if pkg.BasePath != "/v1" {
+	if pkg.BasePath != "/" {
 		t.Fatalf("expected default base path, got %s", pkg.BasePath)
 	}
-	if pkg.PackagePath != "/v1/mcp/package" {
+	if pkg.PackagePath != "/mcp/package" {
 		t.Fatalf("expected default package path, got %s", pkg.PackagePath)
 	}
-	if pkg.InvokePath != "/v1/mcp/run" {
+	if pkg.InvokePath != "/mcp/run" {
 		t.Fatalf("expected default invoke path, got %s", pkg.InvokePath)
 	}
 }

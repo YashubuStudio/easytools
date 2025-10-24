@@ -458,7 +458,7 @@ func buildOutputSchema() JSONSchema {
 
 func normalizeBasePath(base string) string {
 	if base == "" {
-		base = "/v1"
+		base = "/"
 	}
 	if !strings.HasPrefix(base, "/") {
 		base = "/" + base
