@@ -17,13 +17,13 @@ Go 1.24.5 と Fyne GUI ツールキットが必要です。
 ### Windows
 ```bash
 go mod tidy
-go build -o easytools ./cmd/legacy-exec-gui
+go build -o easytools ./cmd/easytools
 ```
 
 ### Linux
 ```bash
 go mod tidy
-go build -o easytools ./cmd/legacy-exec-gui
+go build -o easytools ./cmd/easytools
 ```
 
 ## 実行
@@ -32,7 +32,17 @@ go build -o easytools ./cmd/legacy-exec-gui
 ./easytools
 ```
 
-バイナリを起動すると GUI が開きます。サーバーアドレスやパスを設定し、ツールを登録して **Start Server** をクリックしてください。実行中は以下のエンドポイントが利用できます（デフォルト値を表示）。
+フラグなしで起動すると（デスクトップではダブルクリックで）GUI が開きます。`DISPLAY` が無い SSH 環境などヘッドレス環境では自動的に CLI モードへフォールバックし、GUI の代わりに HTTP サーバーを起動します。手動で制御したい場合は以下のフラグを利用してください。
+
+```bash
+./easytools --server           # HTTP サーバーのみ起動
+sudo ./easytools --webui       # サーバーを起動し、127.0.0.1:18080 に設定用 Web UI を開く
+./easytools --config /path/to/tools.yaml --addr :9090
+```
+
+CLI は GUI と同じ `tools.yaml` を読み書きし、コマンドラインで指定した値を優先します。`--webui` で有効になる Web UI は YAML を編集するための簡易設定画面で、管理者権限での利用を想定しています。
+
+GUI または CLI モードでサーバーアドレスやパスを設定し、ツールを登録して **Start Server** をクリックしてください。実行中は以下のエンドポイントが利用できます（デフォルト値を表示）。
 
 | Method | Path                     | Description                         |
 |--------|--------------------------|-------------------------------------|

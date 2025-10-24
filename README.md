@@ -17,13 +17,13 @@ Requires Go 1.24.5 and the Fyne GUI toolkit.
 ### Windows
 ```bash
 go mod tidy
-go build -o easytools ./cmd/legacy-exec-gui
+go build -o easytools ./cmd/easytools
 ```
 
 ### Linux
 ```bash
 go mod tidy
-go build -o easytools ./cmd/legacy-exec-gui
+go build -o easytools ./cmd/easytools
 ```
 
 ## Run
@@ -32,7 +32,17 @@ go build -o easytools ./cmd/legacy-exec-gui
 ./easytools
 ```
 
-Launch the binary to open the GUI. Configure the server address and paths, register tools and click **Start Server**. When running, the following endpoints become available (defaults shown):
+Launch the binary without flags (double-click on desktop platforms) to open the GUI. When EasyTools detects a headless environment (for example SSH sessions without `DISPLAY`) it automatically falls back to CLI mode and starts the HTTP server instead of launching the GUI. Use the following flags for manual control:
+
+```bash
+./easytools --server           # start only the HTTP server
+sudo ./easytools --webui       # start the server and enable the configuration Web UI on 127.0.0.1:18080
+./easytools --config /path/to/tools.yaml --addr :9090
+```
+
+The CLI reads and writes `tools.yaml` (same format as the GUI) and honours overrides passed on the command line. The Web UI served by `--webui` exposes a lightweight editor for the YAML configuration and is intended for administrative sessions.
+
+Configure the server address and paths, register tools and click **Start Server** in the GUI or use the CLI mode. When running, the following endpoints become available (defaults shown):
 
 | Method | Path                     | Description                                 |
 |--------|--------------------------|---------------------------------------------|
