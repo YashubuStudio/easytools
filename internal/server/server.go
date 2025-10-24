@@ -30,6 +30,7 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 	if s.srv != nil {
 		return errors.New("server already running")
 	}
+	cfg.LogWriter = writerOrNil(s.LogWriter)
 	if cfg.Tools == nil || len(cfg.Tools) == 0 {
 		return errors.New("no tools defined")
 	}

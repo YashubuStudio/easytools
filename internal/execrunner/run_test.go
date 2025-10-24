@@ -63,10 +63,17 @@ func TestRunOnceEnvFiltering(t *testing.T) {
 		t.Fatalf("env not passed through: %q", res.Stdout)
 	}
 
-	if _, status, err := RunOnce(context.Background(), cfg, &model.RunRequest{
+	res, status, err = RunOnce(context.Background(), cfg, &model.RunRequest{
 		Tool: "env",
-	}); err == nil || status != 400 {
-		t.Fatalf("expected error when required env missing")
+	})
+	if err != nil {
+		t.Fatalf("unexpected error when env missing: %v", err)
+	}
+	if status != 200 {
+		t.Fatalf("unexpected status when env missing: %d", status)
+	}
+	if res.Stdout != "" {
+		t.Fatalf("expected empty stdout when env missing, got %q", res.Stdout)
 	}
 }
 
@@ -97,4 +104,39 @@ func TestRunOnceOutputMask(t *testing.T) {
 	if res.Stdout != "***" {
 		t.Fatalf("stdout should be masked, got %q", res.Stdout)
 	}
+}
+
+func TestRecordMissingEnvAddsSpecs(t *testing.T) {
+	cfg := &model.ServerConfig{Tools: map[string]model.Tool{
+		"tool": {
+			Cmd: "echo",
+		},
+	}}
+
+	added := cfg.RecordMissingEnv("tool", []string{"TOKEN", "TOKEN", "API_KEY"})
+	if len(added) != 2 {
+		t.Fatalf("expected 2 added env fields, got %d", len(added))
+	}
+
+	tool := cfg.Tools["tool"]
+	if !containsString(tool.AllowEnv, "API_KEY") || !containsString(tool.AllowEnv, "TOKEN") {
+		t.Fatalf("allow list missing expected entries: %#v", tool.AllowEnv)
+	}
+
+	names := make([]string, 0, len(tool.Input.Env))
+	for _, field := range tool.Input.Env {
+		names = append(names, field.Name)
+	}
+	if !containsString(names, "TOKEN") || !containsString(names, "API_KEY") {
+		t.Fatalf("input env missing expected entries: %#v", names)
+	}
+}
+
+func containsString(list []string, target string) bool {
+	for _, v := range list {
+		if v == target {
+			return true
+		}
+	}
+	return false
 }

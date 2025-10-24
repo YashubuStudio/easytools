@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/yashubustudio/easytools/internal/model"
+	"github.com/yashubustudio/easytools/internal/util"
 )
 
 type cappedBuffer struct {
@@ -90,9 +91,17 @@ func RunOnce(ctx context.Context, cfg *model.ServerConfig, req *model.RunRequest
 	if err != nil {
 		return &model.RunResponse{Tool: req.Tool}, 400, err
 	}
-	envVars, err := sanitizeEnv(tool, req.Env)
+	envVars, missingEnv, err := sanitizeEnv(tool, req.Env)
 	if err != nil {
 		return &model.RunResponse{Tool: req.Tool}, 400, err
+	}
+	if len(missingEnv) > 0 {
+		for _, name := range missingEnv {
+			util.Logf(cfg.LogWriter, "[run] tool=%s env %s が足りません\n", req.Tool, name)
+		}
+		if added := cfg.RecordMissingEnv(req.Tool, missingEnv); len(added) > 0 {
+			util.Logf(cfg.LogWriter, "[run] tool=%s Env項目を追加: %s\n", req.Tool, strings.Join(added, ", "))
+		}
 	}
 	stdin, err := sanitizeStdin(tool, req.Stdin)
 	if err != nil {
@@ -225,7 +234,7 @@ func sanitizeParams(tool model.Tool, params map[string]any) (map[string]any, err
 	return sanitized, nil
 }
 
-func sanitizeEnv(tool model.Tool, env map[string]string) (map[string]string, error) {
+func sanitizeEnv(tool model.Tool, env map[string]string) (map[string]string, []string, error) {
 	allowList := map[string]struct{}{}
 	for _, name := range tool.AllowEnv {
 		allowList[name] = struct{}{}
@@ -239,17 +248,18 @@ func sanitizeEnv(tool model.Tool, env map[string]string) (map[string]string, err
 		}
 		if len(allowList) > 0 {
 			if _, ok := allowList[name]; !ok {
-				return nil, fmt.Errorf("env field %s not allowed by allow_env", name)
+				return nil, nil, fmt.Errorf("env field %s not allowed by allow_env", name)
 			}
 		}
 		spec[name] = field
 	}
 
 	if len(spec) == 0 && len(allowList) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	var sanitized map[string]string
+	missing := []string{}
 	if len(spec) > 0 {
 		for name, field := range spec {
 			if env != nil {
@@ -262,7 +272,7 @@ func sanitizeEnv(tool model.Tool, env map[string]string) (map[string]string, err
 				}
 			}
 			if field.Required {
-				return nil, fmt.Errorf("missing required env: %s", name)
+				missing = append(missing, name)
 			}
 		}
 	} else {
@@ -280,9 +290,9 @@ func sanitizeEnv(tool model.Tool, env map[string]string) (map[string]string, err
 	}
 
 	if len(sanitized) == 0 {
-		return nil, nil
+		return nil, missing, nil
 	}
-	return sanitized, nil
+	return sanitized, missing, nil
 }
 
 func sanitizeStdin(tool model.Tool, stdin string) (string, error) {

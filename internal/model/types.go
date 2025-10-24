@@ -1,7 +1,11 @@
 package model
 
 import (
+	"io"
 	"net/http"
+	"sort"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -96,10 +100,90 @@ type ServerConfig struct {
 	CORSOrigin string          `yaml:"cors_origin"`
 	Tools      map[string]Tool `yaml:"tools"`
 	Paths      Paths           `yaml:"paths"`
+	LogWriter  io.Writer       `yaml:"-" json:"-"`
+
+	mu sync.Mutex `yaml:"-" json:"-"`
 }
 
 // Convenience for handlers
 func (c *ServerConfig) Validate() error { return nil }
+
+// RecordMissingEnv registers the provided environment variable names as
+// user-supplied requirements for the given tool. The method ensures that the
+// tool's allow list and input specification include the variables so that GUI
+// や API クライアントで項目が提示され、値を入力すればすぐ使えるようになります。
+// 戻り値は新規に追加された項目名です。
+func (c *ServerConfig) RecordMissingEnv(toolName string, envNames []string) []string {
+	if c == nil || len(envNames) == 0 {
+		return nil
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	tool, ok := c.Tools[toolName]
+	if !ok {
+		return nil
+	}
+
+	allowSet := map[string]struct{}{}
+	for _, name := range tool.AllowEnv {
+		trimmed := strings.TrimSpace(name)
+		if trimmed == "" {
+			continue
+		}
+		allowSet[trimmed] = struct{}{}
+	}
+
+	fieldSet := map[string]struct{}{}
+	for _, field := range tool.Input.Env {
+		trimmed := strings.TrimSpace(field.Name)
+		if trimmed == "" {
+			continue
+		}
+		fieldSet[trimmed] = struct{}{}
+	}
+
+	added := make([]string, 0, len(envNames))
+	allowUpdated := false
+	for _, raw := range envNames {
+		name := strings.TrimSpace(raw)
+		if name == "" {
+			continue
+		}
+		if _, ok := allowSet[name]; !ok {
+			tool.AllowEnv = append(tool.AllowEnv, name)
+			allowSet[name] = struct{}{}
+			allowUpdated = true
+		}
+		if _, ok := fieldSet[name]; ok {
+			continue
+		}
+		tool.Input.Env = append(tool.Input.Env, ToolInputField{
+			Name:        name,
+			Description: "auto-added (missing during execution)",
+		})
+		fieldSet[name] = struct{}{}
+		added = append(added, name)
+	}
+
+	if allowUpdated {
+		sort.Strings(tool.AllowEnv)
+	}
+	if len(added) > 0 {
+		sort.Slice(tool.Input.Env, func(i, j int) bool {
+			return strings.TrimSpace(tool.Input.Env[i].Name) < strings.TrimSpace(tool.Input.Env[j].Name)
+		})
+	}
+
+	if allowUpdated || len(added) > 0 {
+		if c.Tools == nil {
+			c.Tools = map[string]Tool{}
+		}
+		c.Tools[toolName] = tool
+	}
+	return added
+}
 
 // For status constants usage in other packages
 const (
