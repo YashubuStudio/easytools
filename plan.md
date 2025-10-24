@@ -140,7 +140,7 @@ Tool:
 ```yaml
 ServerConfig:
   addr: ":8080"
-  base_path: "/v1"
+  base_path: "/"
   api_key: "devkey"
   cors: true
   cors_origin: "https://example.com"

@@ -30,7 +30,7 @@ func Default() File {
 	listenAll := false
 	return File{
 		Addr:     ":8080",
-		BasePath: "/v1",
+		BasePath: "/",
 		Paths: model.Paths{
 			Run:        "/run",
 			Tools:      "/tools",

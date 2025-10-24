@@ -34,7 +34,7 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 		return errors.New("no tools defined")
 	}
 	if cfg.BasePath == "" {
-		cfg.BasePath = "/v1"
+		cfg.BasePath = "/"
 	}
 	if !strings.HasPrefix(cfg.BasePath, "/") {
 		cfg.BasePath = "/" + cfg.BasePath
