@@ -25,6 +25,33 @@ func TestBuildPackage(t *testing.T) {
 				Timeout:    "5s",
 				MaxStdout:  123,
 				MaxStderr:  456,
+				Input: model.ToolInputSpec{
+					Params: []model.ToolInputField{
+						{Name: "msg", Description: "Message to echo", Required: true},
+						{Name: "count", Description: "Repeat count"},
+					},
+					Env: []model.ToolInputField{
+						{Name: "TOKEN", Description: "Bearer token", Required: true},
+					},
+					Stdin: &model.ToolInputStdin{Description: "Optional extra payload"},
+				},
+				Output: model.ToolOutputSpec{
+					Fields: []model.ToolOutputField{
+						{Name: "stdout", Mask: true},
+					},
+				},
+				MCP: &model.ToolMCPDescriptor{
+					Name:      "echo-tool",
+					Arguments: []string{"msg", "count"},
+					Promise:   "Echo the provided message",
+					RequestExample: map[string]any{
+						"params": map[string]any{"msg": "hello"},
+					},
+					ResponseExample: map[string]any{
+						"stdout": "***",
+					},
+					Description: "Outputs the message received via params or stdin.",
+				},
 			},
 		},
 	}
@@ -79,17 +106,28 @@ func TestBuildPackage(t *testing.T) {
 	if !ok {
 		t.Fatalf("params schema missing: %#v", tool.InputSchema.Properties)
 	}
-	if paramsSchema == nil || len(paramsSchema.Required) != 2 {
+	if paramsSchema == nil || len(paramsSchema.Required) != 1 || paramsSchema.Required[0] != "msg" {
 		t.Fatalf("params schema required unexpected: %#v", paramsSchema)
 	}
-	if tool.InputSchema.Properties["stdin"] == nil {
+	stdinSchema := tool.InputSchema.Properties["stdin"]
+	if stdinSchema == nil || stdinSchema.Description == "" {
 		t.Fatalf("stdin schema missing")
+	}
+	envSchema := tool.InputSchema.Properties["env"]
+	if envSchema == nil || len(envSchema.Required) != 1 || envSchema.Required[0] != "TOKEN" {
+		t.Fatalf("env schema unexpected: %#v", envSchema)
 	}
 	if pkg.ResponseSchema.Properties["output"] == nil {
 		t.Fatalf("package response schema missing output property")
 	}
 	if tool.ResponseSchema.Properties["stdout"] == nil {
 		t.Fatalf("tool response schema missing stdout")
+	}
+	if tool.Descriptor == nil || tool.Descriptor.Name != "echo-tool" {
+		t.Fatalf("descriptor missing or incorrect: %#v", tool.Descriptor)
+	}
+	if len(tool.Descriptor.Arguments) != 2 {
+		t.Fatalf("descriptor arguments missing: %#v", tool.Descriptor.Arguments)
 	}
 }
 

@@ -45,6 +45,17 @@ type Tool struct {
 	MaxStderr      int               `json:"max_stderr,omitempty"`
 	InputSchema    JSONSchema        `json:"input_schema"`
 	ResponseSchema JSONSchema        `json:"response_schema"`
+	Descriptor     *Descriptor       `json:"descriptor,omitempty"`
+}
+
+type Descriptor struct {
+	Name            string         `json:"name"`
+	Arguments       []string       `json:"arguments,omitempty"`
+	Promise         string         `json:"promise,omitempty"`
+	RequestExample  map[string]any `json:"request_example,omitempty"`
+	ResponseExample map[string]any `json:"response_example,omitempty"`
+	Description     string         `json:"description,omitempty"`
+	Notes           map[string]any `json:"notes,omitempty"`
 }
 
 // JSONSchema is a simplified JSON schema representation used in manifests.
@@ -192,6 +203,7 @@ func buildToolDefinition(name string, tool model.Tool) Tool {
 		MaxStderr:      tool.MaxStderr,
 		InputSchema:    buildInputSchema(tool),
 		ResponseSchema: buildOutputSchema(),
+		Descriptor:     buildDescriptor(tool),
 	}
 }
 
@@ -213,19 +225,19 @@ func buildInputSchema(tool model.Tool) JSONSchema {
 	props := map[string]*JSONSchema{}
 	required := []string{}
 
-	if schema, needsParam := buildParamsSchema(tool.Args); schema != nil {
+	if schema, needsParam := buildParamsSchema(tool); schema != nil {
 		props["params"] = schema
 		if needsParam {
 			required = append(required, "params")
 		}
 	}
-	if schema := buildEnvSchema(tool.AllowEnv); schema != nil {
+	if schema := buildEnvSchema(tool); schema != nil {
 		props["env"] = schema
 	}
-	if tool.AllowStdin {
-		props["stdin"] = &JSONSchema{
-			Type:        "string",
-			Description: "Text passed to the command's standard input.",
+	if stdinSchema, requiredStdin := buildStdinSchema(tool); stdinSchema != nil {
+		props["stdin"] = stdinSchema
+		if requiredStdin {
+			required = append(required, "stdin")
 		}
 	}
 	additionalFalse := boolPtr(false)
@@ -236,50 +248,175 @@ func buildInputSchema(tool model.Tool) JSONSchema {
 			AdditionalProperties: additionalFalse,
 		}
 	}
-	return JSONSchema{
+	schema := JSONSchema{
 		Type:                 "object",
 		Description:          "Input payload for the tool.",
 		Properties:           props,
-		Required:             required,
 		AdditionalProperties: additionalFalse,
 	}
+	if len(required) > 0 {
+		schema.Required = required
+	}
+	return schema
 }
 
-func buildParamsSchema(args []string) (*JSONSchema, bool) {
-	tokens := extractTemplateTokens(args)
+func buildParamsSchema(tool model.Tool) (*JSONSchema, bool) {
 	schema := &JSONSchema{
 		Type:        "object",
 		Description: "Values replacing template tokens defined in args.",
 	}
 	additional := boolPtr(false)
 	schema.AdditionalProperties = additional
-	if len(tokens) == 0 {
+
+	if len(tool.Input.Params) == 0 {
+		tokens := extractTemplateTokens(tool.Args)
+		if len(tokens) == 0 {
+			return schema, false
+		}
+		props := make(map[string]*JSONSchema, len(tokens))
+		for _, token := range tokens {
+			props[token] = &JSONSchema{Type: "string"}
+		}
+		schema.Properties = props
+		schema.Required = cloneStrings(tokens)
+		return schema, true
+	}
+
+	props := map[string]*JSONSchema{}
+	required := []string{}
+	for _, field := range tool.Input.Params {
+		name := strings.TrimSpace(field.Name)
+		if name == "" {
+			continue
+		}
+		fieldSchema := &JSONSchema{Type: "string"}
+		if field.Description != "" {
+			fieldSchema.Description = field.Description
+		}
+		props[name] = fieldSchema
+		if field.Required {
+			required = append(required, name)
+		}
+	}
+	if len(props) == 0 {
 		return schema, false
 	}
-	props := make(map[string]*JSONSchema, len(tokens))
-	for _, token := range tokens {
-		props[token] = &JSONSchema{Type: "string"}
+	keys := make([]string, 0, len(props))
+	for k := range props {
+		keys = append(keys, k)
 	}
-	schema.Properties = props
-	schema.Required = cloneStrings(tokens)
-	return schema, true
+	sort.Strings(keys)
+	ordered := make(map[string]*JSONSchema, len(props))
+	for _, k := range keys {
+		ordered[k] = props[k]
+	}
+	schema.Properties = ordered
+	if len(required) > 0 {
+		sort.Strings(required)
+		schema.Required = required
+	}
+	return schema, len(required) > 0
 }
 
-func buildEnvSchema(allowed []string) *JSONSchema {
-	if len(allowed) == 0 {
+func buildEnvSchema(tool model.Tool) *JSONSchema {
+	if len(tool.AllowEnv) == 0 && len(tool.Input.Env) == 0 {
 		return nil
 	}
-	keys := cloneAndSortStrings(allowed)
-	props := make(map[string]*JSONSchema, len(keys))
-	for _, key := range keys {
-		props[key] = &JSONSchema{Type: "string"}
+	props := map[string]*JSONSchema{}
+	required := []string{}
+	keys := []string{}
+	if len(tool.Input.Env) > 0 {
+		for _, field := range tool.Input.Env {
+			name := strings.TrimSpace(field.Name)
+			if name == "" {
+				continue
+			}
+			if len(tool.AllowEnv) > 0 && !contains(tool.AllowEnv, name) {
+				continue
+			}
+			schema := &JSONSchema{Type: "string"}
+			if field.Description != "" {
+				schema.Description = field.Description
+			}
+			props[name] = schema
+			keys = append(keys, name)
+			if field.Required {
+				required = append(required, name)
+			}
+		}
 	}
-	return &JSONSchema{
+	if len(props) == 0 {
+		allowed := cloneAndSortStrings(tool.AllowEnv)
+		if len(allowed) == 0 {
+			return nil
+		}
+		for _, key := range allowed {
+			props[key] = &JSONSchema{Type: "string"}
+		}
+		keys = allowed
+	} else {
+		sort.Strings(keys)
+		ordered := make(map[string]*JSONSchema, len(props))
+		for _, k := range keys {
+			ordered[k] = props[k]
+		}
+		props = ordered
+	}
+	schema := &JSONSchema{
 		Type:                 "object",
 		Description:          "Environment variables forwarded to the command.",
 		Properties:           props,
 		AdditionalProperties: boolPtr(false),
 	}
+	if len(required) > 0 {
+		sort.Strings(required)
+		schema.Required = required
+	}
+	return schema
+}
+
+func buildStdinSchema(tool model.Tool) (*JSONSchema, bool) {
+	if !tool.AllowStdin {
+		return nil, false
+	}
+	desc := "Text passed to the command's standard input."
+	if tool.Input.Stdin != nil && tool.Input.Stdin.Description != "" {
+		desc = tool.Input.Stdin.Description
+	}
+	required := tool.Input.Stdin != nil && tool.Input.Stdin.Required
+	return &JSONSchema{Type: "string", Description: desc}, required
+}
+
+func buildDescriptor(tool model.Tool) *Descriptor {
+	if tool.MCP == nil {
+		return nil
+	}
+	if tool.MCP.Name == "" && tool.MCP.Promise == "" && len(tool.MCP.Arguments) == 0 &&
+		len(tool.MCP.RequestExample) == 0 && len(tool.MCP.ResponseExample) == 0 &&
+		tool.MCP.Description == "" && len(tool.MCP.Notes) == 0 {
+		return nil
+	}
+	desc := &Descriptor{
+		Name:        tool.MCP.Name,
+		Promise:     tool.MCP.Promise,
+		Description: tool.MCP.Description,
+	}
+	if desc.Name == "" {
+		desc.Name = tool.Cmd
+	}
+	if len(tool.MCP.Arguments) > 0 {
+		desc.Arguments = cloneStrings(tool.MCP.Arguments)
+	}
+	if len(tool.MCP.RequestExample) > 0 {
+		desc.RequestExample = cloneAnyMap(tool.MCP.RequestExample)
+	}
+	if len(tool.MCP.ResponseExample) > 0 {
+		desc.ResponseExample = cloneAnyMap(tool.MCP.ResponseExample)
+	}
+	if len(tool.MCP.Notes) > 0 {
+		desc.Notes = cloneAnyMap(tool.MCP.Notes)
+	}
+	return desc
 }
 
 func buildResponseSchema() JSONSchema {
@@ -401,6 +538,26 @@ func cloneParams(in map[string]any) map[string]any {
 		out[k] = v
 	}
 	return out
+}
+
+func cloneAnyMap(in map[string]any) map[string]any {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]any, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func contains(items []string, target string) bool {
+	for _, item := range items {
+		if item == target {
+			return true
+		}
+	}
+	return false
 }
 
 func boolPtr(b bool) *bool {
