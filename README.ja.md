@@ -65,6 +65,24 @@ curl -X POST 'http://localhost:8080/mcp/run' \
       }'
 ```
 
+> [!TIP]
+> Windows の `cmd.exe` ではシングルクォートとバックスラッシュによる改行継続が利用できません。
+> 代わりにダブルクォートとキャレット (`^`) を使ってください。
+>
+> ```cmd
+> curl -X POST "http://localhost:8080/mcp/run" ^
+>   -H "Content-Type: application/json" ^
+>   -H "X-API-Key: devkey" ^
+>   -d "{\\
+>         \"name\": \"echo\",\\
+>         \"input\": {\\
+>           \"params\": {\"msg\": \"hello\"}\\
+>         }\\
+>       }"
+> ```
+>
+> PowerShell ではバックスラッシュの代わりにバッククォート (`\``) の行継続を使えますが、シングルクォートのまま実行してください。
+
 レスポンスは検証後の JSON を 1 件返し、マスク対象の値は自動的に伏字化されます。
 
 ### MCP パッケージ例
@@ -72,6 +90,10 @@ curl -X POST 'http://localhost:8080/mcp/run' \
 ```bash
 curl -H 'X-API-Key: devkey' \
   http://localhost:8080/mcp/package
+```
+
+```cmd
+curl -H "X-API-Key: devkey" http://localhost:8080/mcp/package
 ```
 
 結果には API 名称、引数定義、制約、サンプルリクエスト/レスポンス、自然言語解説（任意）が含まれます。
