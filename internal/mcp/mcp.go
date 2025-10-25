@@ -92,14 +92,14 @@ type Response struct {
 
 // ResponseOutput mirrors execrunner.RunOnce results while remaining stable for MCP clients.
 type ResponseOutput struct {
-	Command    []string  `json:"command"`
-	ExitCode   int       `json:"exit_code"`
-	Stdout     string    `json:"stdout"`
-	Stderr     string    `json:"stderr"`
-	DurationMs int64     `json:"duration_ms"`
-	TimedOut   bool      `json:"timed_out"`
-	StartedAt  time.Time `json:"started_at"`
-	EndedAt    time.Time `json:"ended_at"`
+	Command    []string `json:"command"`
+	ExitCode   int      `json:"exit_code"`
+	Stdout     string   `json:"stdout"`
+	Stderr     string   `json:"stderr"`
+	DurationMs int64    `json:"duration_ms"`
+	TimedOut   bool     `json:"timed_out"`
+	StartedAt  string   `json:"started_at"`
+	EndedAt    string   `json:"ended_at"`
 }
 
 // BuildPackage converts the loaded server configuration into an MCP package manifest.
@@ -148,6 +148,8 @@ func BuildResponse(res *model.RunResponse) Response {
 	}
 	cmd := cloneStrings(res.Command)
 	success := res.ExitCode == 0 && !res.TimedOut
+	startedAt := formatTime(res.StartedAt)
+	endedAt := formatTime(res.EndedAt)
 	return Response{
 		Name:    res.Tool,
 		Success: success,
@@ -158,10 +160,17 @@ func BuildResponse(res *model.RunResponse) Response {
 			Stderr:     res.Stderr,
 			DurationMs: int64(res.Duration),
 			TimedOut:   res.TimedOut,
-			StartedAt:  res.StartedAt,
-			EndedAt:    res.EndedAt,
+			StartedAt:  startedAt,
+			EndedAt:    endedAt,
 		},
 	}
+}
+
+func formatTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format(time.RFC3339Nano)
 }
 
 // ToRunRequest converts an InvokeRequest into the classic RunRequest structure.
