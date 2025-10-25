@@ -85,6 +85,50 @@ curl -X POST 'http://localhost:8080/mcp/run' \
 
 レスポンスは検証後の JSON を 1 件返し、マスク対象の値は自動的に伏字化されます。
 
+#### `/mcp/run` のリクエスト仕様
+
+- **HTTP メソッド / パス**: `POST /mcp/run`（`base_path` や `paths.mcp_invoke` の設定がある場合はそれに従います）
+- **ヘッダー**: `Content-Type: application/json` は必須。API キー認証を有効にしているときは `X-API-Key: <設定した値>` を追加してください。
+- **リクエストボディ**: `InvokeRequest` 形式の JSON を 1 件送信します。
+
+```json
+{
+  "name": "<tools.yaml で定義したツール名>",
+  "input": {
+    "params": {"<テンプレート変数>": "値", ...},
+    "env": {"<許可された環境変数>": "値", ...},
+    "stdin": "ツールに渡す標準入力"
+  }
+}
+```
+
+| フィールド | 必須 | 説明 |
+| --- | --- | --- |
+| `name` | ✅ | `tools.yaml` のキー名。前後の空白は取り除かれ、空文字列の場合は 400 が返ります。|
+| `input` | 任意 | 追加の入力をまとめたオブジェクト。省略時は空の入力として扱われます。|
+| `input.params` | 条件付き | コマンドライン引数テンプレート `{{token}}` を埋める値。ツールの `input.params` で `required: true` の項目、またはテンプレートから自動検出されたトークンはすべて必須です。|
+| `input.env` | 任意 | `allow_env` に含まれる環境変数名、もしくは `input.env` で明示した項目に値を渡します。許可されていないキーを送信すると 400 になります。|
+| `input.stdin` | 条件付き | `allow_stdin: true` かつ `input.stdin.required: true` のツールでは必須です。禁止されている状態で送ると 400 になります。|
+
+##### テンプレートの展開ルール
+
+- `args` に含まれる `{{token}}` 形式のトークンが自動検出され、`input.params[token]` で指定した値に置き換わります。
+- 置換は文字列置換で行われ、未解決の `{{` が残っていると `arg template error` として 400 が返ります。
+- `input.params` を設定していないツールでもテンプレートから検出したトークンは必須です。
+- 値は内部的に `fmt.Sprint` で文字列化され、同じトークンが複数回現れても 1 度指定すればすべて置換されます。
+
+##### レスポンスとステータスコード
+
+- 成功時は `200 OK` で `{"name", "success", "output"}` を含む JSON を返します。`output.command` には実際に実行したバイナリと引数が格納されます。
+- コマンドが非ゼロ終了、タイムアウトなどで失敗した場合は本文を返しつつも HTTP ステータスは `400 Bad Request` になります。
+- バリデーションエラーや未登録ツールは `400 Bad Request` または `404 Not Found`、API キー不一致は `401 Unauthorized`、未対応メソッドは `405 Method Not Allowed` を返します。
+
+##### 認証 (`X-API-Key`)
+
+- サーバー設定で `api_key` を指定すると全エンドポイントで `X-API-Key` ヘッダーが必須になります。
+- 無効または欠落している場合は `401 Unauthorized` と `{"error": "missing/invalid api key"}` を返します。
+- `cors: true` の場合は `Access-Control-Allow-Headers: Content-Type, X-API-Key` を含むレスポンスヘッダーと、プリフライト要求に対する `204 No Content` を返します。
+
 ### MCP パッケージ例
 
 ```bash

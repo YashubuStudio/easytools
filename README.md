@@ -86,6 +86,50 @@ curl -X POST 'http://localhost:8080/mcp/run' \
 
 The response is a single validated JSON document with masked fields where necessary.
 
+#### `/mcp/run` request contract
+
+- **Method & path**: `POST /mcp/run` (or the remapped `base_path` + `paths.mcp_invoke`).
+- **Headers**: Always send `Content-Type: application/json`. When API-key auth is enabled, include `X-API-Key: <value from config>`.
+- **Body**: A single JSON object matching the `InvokeRequest` shape.
+
+```json
+{
+  "name": "<tool name as defined in tools.yaml>",
+  "input": {
+    "params": {"<template token>": "value", ...},
+    "env": {"<allowed env var>": "value", ...},
+    "stdin": "string passed to the tool's standard input"
+  }
+}
+```
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `name` | ✅ | Key of the registered tool. Leading/trailing whitespace is trimmed; an empty name returns HTTP 400. |
+| `input` | optional | Container for extra values. When omitted the tool runs with empty params/env/stdin. |
+| `input.params` | conditional | Supplies replacements for `{{token}}` placeholders found in the tool's `args`. Tokens declared with `input.params` and those auto-detected from the template are all required. Missing entries raise HTTP 400. |
+| `input.env` | optional | Values for variables allowed by `allow_env` or declared in `input.env`. Sending a key outside the whitelist raises HTTP 400. |
+| `input.stdin` | conditional | Mandatory when the tool sets `allow_stdin: true` and `input.stdin.required: true`. Sending stdin while it is disallowed raises HTTP 400. |
+
+##### Template expansion rules
+
+- Every argument is scanned for `{{token}}` placeholders. Each placeholder is replaced with the corresponding `input.params[token]` value.
+- Replacement is string-based. If any `{{` remains after substitution the server returns HTTP 400 with `arg template error`.
+- Even without an explicit `input.params` definition, all detected template tokens become required inputs.
+- Values are converted via `fmt.Sprint`, so non-string values are stringified. Reusing the same token multiple times only requires one entry in `input.params`.
+
+##### Responses and status codes
+
+- Successful executions return `200 OK` with an object containing `name`, `success` and `output`. `output.command` lists the executable path plus arguments.
+- Tool failures (non-zero exit code, timeout) still return the structured body but with HTTP status `400 Bad Request`.
+- Validation issues or unknown tools return `400 Bad Request` or `404 Not Found`. Invalid API keys return `401 Unauthorized`, and unsupported methods return `405 Method Not Allowed`.
+
+##### Authentication (`X-API-Key`)
+
+- Setting `api_key` in the server config makes the `X-API-Key` header mandatory for every endpoint.
+- Missing or incorrect keys yield `401 Unauthorized` with `{"error": "missing/invalid api key"}`.
+- When `cors: true` is enabled the server emits `Access-Control-Allow-Headers: Content-Type, X-API-Key` and answers preflight (`OPTIONS`) requests with `204 No Content`.
+
 ### MCP package example
 
 ```bash
