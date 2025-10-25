@@ -144,7 +144,7 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 			return
 		}
 		res, status, _ := execrunner.RunOnce(r.Context(), cfg, &req)
-		util.WriteJSON(w, status, res)
+		writeInvokeResponse(w, status, res)
 	}))
 
 	mux.HandleFunc(util.JoinPathLike(cfg.BasePath, cfg.Paths.MCPPackage), wrap(func(w http.ResponseWriter, r *http.Request) {
@@ -173,10 +173,10 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 		}
 		res, status, _ := execrunner.RunOnce(r.Context(), cfg, runReq)
 		if respondAsMCP {
-			util.WriteJSON(w, status, mcp.BuildResponse(res))
+			writeInvokeResponse(w, status, res)
 			return
 		}
-		util.WriteJSON(w, status, res)
+		writeInvokeResponse(w, status, res)
 	}))
 
 	s.cfg = cfg
@@ -202,6 +202,14 @@ func (s *LegacyServer) Stop() error {
 	err := s.srv.Shutdown(ctx)
 	s.srv = nil
 	return err
+}
+
+func writeInvokeResponse(w http.ResponseWriter, status int, res *model.RunResponse) {
+	payload := mcp.BuildResponse(res)
+	if status != model.StatusOK {
+		payload.Success = false
+	}
+	util.WriteJSON(w, status, payload)
 }
 
 // --- helpers ---

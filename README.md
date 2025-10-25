@@ -153,7 +153,24 @@ curl -X POST 'http://localhost:8080/run' \
       }'
 ```
 
-The server returns `RunResponse`, which includes the executed command, stdout/stderr, exit code and timing metadata.
+The server returns a payload that matches the MCP manifest schema: the top level includes the tool `name`, an execution `success` flag, and an `output` object containing the command, stdout/stderr, exit code and timing metadata.
+
+```json
+{
+  "name": "echo",
+  "success": true,
+  "output": {
+    "command": ["/bin/echo", "hello"],
+    "exit_code": 0,
+    "stdout": "hello\n",
+    "stderr": "",
+    "duration_ms": 2,
+    "timed_out": false,
+    "started_at": "2024-01-01T00:00:00Z",
+    "ended_at": "2024-01-01T00:00:00Z"
+  }
+}
+```
 
 ### Adding a `git pull` command
 

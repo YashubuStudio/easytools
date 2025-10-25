@@ -154,7 +154,24 @@ curl -X POST 'http://localhost:8080/run' \
       }'
 ```
 
-レスポンスには実行コマンド、標準出力・標準エラー、終了コード、時間情報を含む `RunResponse` が返ります。
+レスポンスは MCP マニフェストのスキーマに準拠した JSON で、トップレベルにツール名 `name`、実行成否を表す `success`、詳細をまとめた `output` オブジェクト（実行コマンド、標準出力・標準エラー、終了コード、時間情報など）が含まれます。
+
+```json
+{
+  "name": "echo",
+  "success": true,
+  "output": {
+    "command": ["/bin/echo", "hello"],
+    "exit_code": 0,
+    "stdout": "hello\n",
+    "stderr": "",
+    "duration_ms": 2,
+    "timed_out": false,
+    "started_at": "2024-01-01T00:00:00Z",
+    "ended_at": "2024-01-01T00:00:00Z"
+  }
+}
+```
 
 ### `git pull` コマンドを追加する手順
 
