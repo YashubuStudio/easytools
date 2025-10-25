@@ -40,6 +40,8 @@
 | StartedAt | 開始時刻 | 実行開始時刻。 |
 | EndedAt | 終了時刻 | 実行終了時刻。 |
 
+> メモ: 外部 API (`/run` および `/mcp/run`) のレスポンスは、この `RunResponse` の内容を `name`・`success`・`output` フィールドを持つ MCP 形式のオブジェクトにラップした JSON です。
+
 ## Paths
 
 | フィールド | 日本語 | 説明 |
