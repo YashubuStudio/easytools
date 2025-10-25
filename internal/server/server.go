@@ -161,18 +161,22 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 			util.WriteJSON(w, model.StatusMethodNotAllowed, map[string]any{"error": "method not allowed"})
 			return
 		}
-		var invokeReq mcp.InvokeRequest
-		if err := jsonNewDecoderMax(r, 2<<20).Decode(&invokeReq); err != nil {
+		body, err := readRequestBody(r, 2<<20)
+		if err != nil {
 			util.WriteJSON(w, model.StatusBadRequest, map[string]any{"error": err.Error()})
 			return
 		}
-		runReq, err := invokeReq.ToRunRequest()
+		runReq, respondAsMCP, err := decodeInvokeOrRun(body)
 		if err != nil {
 			util.WriteJSON(w, model.StatusBadRequest, map[string]any{"error": err.Error()})
 			return
 		}
 		res, status, _ := execrunner.RunOnce(r.Context(), cfg, runReq)
-		util.WriteJSON(w, status, mcp.BuildResponse(res))
+		if respondAsMCP {
+			util.WriteJSON(w, status, mcp.BuildResponse(res))
+			return
+		}
+		util.WriteJSON(w, status, res)
 	}))
 
 	s.cfg = cfg
@@ -211,6 +215,32 @@ type jsonDecoder struct{ r io.Reader }
 
 func (d *jsonDecoder) Decode(v any) error {
 	return json.NewDecoder(d.r).Decode(v)
+}
+
+func readRequestBody(r *http.Request, n int64) ([]byte, error) {
+	return io.ReadAll(http.MaxBytesReader(nil, r.Body, n))
+}
+
+func decodeInvokeOrRun(body []byte) (*model.RunRequest, bool, error) {
+	var invokeReq mcp.InvokeRequest
+	if err := json.Unmarshal(body, &invokeReq); err == nil {
+		if strings.TrimSpace(invokeReq.Name) != "" || invokeReq.Input != nil {
+			runReq, err := invokeReq.ToRunRequest()
+			if err != nil {
+				return nil, true, err
+			}
+			return runReq, true, nil
+		}
+	}
+
+	var runReq model.RunRequest
+	if err := json.Unmarshal(body, &runReq); err != nil {
+		return nil, false, err
+	}
+	if strings.TrimSpace(runReq.Tool) == "" {
+		return nil, false, errors.New("missing tool name")
+	}
+	return &runReq, false, nil
 }
 
 // avoid importing log here; keep it generic
