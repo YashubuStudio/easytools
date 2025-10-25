@@ -108,7 +108,7 @@ var pageTmpl = template.Must(template.New("webui").Parse(`<!doctype html>
 <body>
   <h1>easytools Web 設定</h1>
   <div class="notice">
-    <p>YAML を編集して保存すると <code>tools.yaml</code> に反映されます。サーバーは再起動するまで新しい設定を読み込みません。</p>
+    <p>YAML を編集して保存すると <code>easytool.conf</code> に反映されます。サーバーは再起動するまで新しい設定を読み込みません。</p>
   </div>
   <form method="post" action="/save">
     <textarea name="content">{{.ConfigYAML}}</textarea>

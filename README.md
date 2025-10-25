@@ -23,11 +23,11 @@ go build -o easytools ./cmd/easytools
 
 ```bash
 ./easytools --server \
-  --config /path/to/tools.yaml \
+  --config /path/to/easytool.conf \
   --addr :8080
 ```
 
-Launching the binary without flags (double-click on desktop platforms) opens the management GUI. Both GUI and CLI read/write the same `tools.yaml`; command-line flags take precedence.
+Launching the binary without flags (double-click on desktop platforms) opens the management GUI. Both GUI and CLI read/write the same `easytool.conf`; command-line flags take precedence.
 
 Per registered API you can configure:
 
@@ -38,6 +38,11 @@ Per registered API you can configure:
 - `stdin`: whether standard input is allowed and its default value
 - `limits`: resource limits for time, memory and IO size
 
+Global server settings live alongside the tool map in `easytool.conf`. Notable keys include:
+
+- `server_name`: MCP manifest identifier reported by `GET /mcp/package` (defaults to `easytools`).
+- `base_path`: URL prefix automatically prepended to every endpoint (defaults to `/mcp`).
+
 ## HTTP endpoints
 
 | Method | Path | Description |
@@ -46,7 +51,7 @@ Per registered API you can configure:
 | `GET` | `/mcp/package` | Returns descriptors with names, arguments, constraints, request/response samples and optional natural-language notes. |
 | `POST` | `/run` | Executes a tool using a simplified JSON payload. |
 | `GET` | `/tools` | Lists registered tools. |
-| `POST` | `/reload` | Reloads `tools.yaml`. |
+| `POST` | `/reload` | Reloads `easytool.conf`. |
 | `GET` | `/healthz` | Health probe for the server. |
 
 Endpoints inherit `base_path` and can be remapped through the `paths.*` settings. API key authentication uses the `X-API-Key` header. When CORS is enabled the server adds appropriate `Access-Control-Allow-*` headers.
@@ -94,7 +99,7 @@ The response is a single validated JSON document with masked fields where necess
 
 ```json
 {
-  "name": "<tool name as defined in tools.yaml>",
+  "name": "<tool name as defined in easytool.conf>",
   "input": {
     "params": {"<template token>": "value", ...},
     "env": {"<allowed env var>": "value", ...},
@@ -174,7 +179,7 @@ The server returns a payload that matches the MCP manifest schema: the top level
 
 ### Adding a `git pull` command
 
-1. Edit `tools.yaml` (created automatically on first launch) and add a new entry under the `tools` map:
+1. Edit `easytool.conf` (created automatically on first launch) and add a new entry under the `tools` map:
 
    ```yaml
    tools:

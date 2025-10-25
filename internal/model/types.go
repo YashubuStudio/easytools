@@ -95,6 +95,7 @@ type Paths struct {
 type ServerConfig struct {
 	Addr       string          `yaml:"addr"`
 	BasePath   string          `yaml:"base_path"`
+	ServerName string          `yaml:"server_name"`
 	APIKey     string          `yaml:"api_key"`
 	CORS       bool            `yaml:"cors"`
 	CORSOrigin string          `yaml:"cors_origin"`

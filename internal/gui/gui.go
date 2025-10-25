@@ -71,9 +71,18 @@ func Run() {
 	}
 	defBase := strings.TrimSpace(cfgFile.BasePath)
 	if defBase == "" {
-		defBase = a.Preferences().StringWithFallback("base", "/")
+		defBase = a.Preferences().StringWithFallback("base", "/mcp")
 	} else {
 		a.Preferences().SetString("base", defBase)
+	}
+	if defBase != "" && !strings.HasPrefix(defBase, "/") {
+		defBase = "/" + defBase
+	}
+	defServerName := strings.TrimSpace(cfgFile.ServerName)
+	if defServerName == "" {
+		defServerName = a.Preferences().StringWithFallback("server_name", "easytools")
+	} else {
+		a.Preferences().SetString("server_name", defServerName)
 	}
 	paths := cfgFile.Paths
 	if strings.TrimSpace(paths.Run) == "" {
@@ -115,6 +124,8 @@ func Run() {
 	addrEntry.SetText(defAddr)
 	baseEntry := widget.NewEntry()
 	baseEntry.SetText(defBase)
+	serverNameEntry := widget.NewEntry()
+	serverNameEntry.SetText(defServerName)
 	runEntry := widget.NewEntry()
 	runEntry.SetText(defRun)
 	toolsEntry := widget.NewEntry()
@@ -154,6 +165,7 @@ func Run() {
 	updateConfigFromUI := func() {
 		cfgFile.Addr = strings.TrimSpace(addrEntry.Text)
 		cfgFile.BasePath = strings.TrimSpace(baseEntry.Text)
+		cfgFile.ServerName = strings.TrimSpace(serverNameEntry.Text)
 		paths := cfgFile.Paths
 		cfgFile.Paths = model.Paths{
 			Run:        strings.TrimSpace(runEntry.Text),
@@ -338,7 +350,16 @@ func Run() {
 			buildAccordion()
 			refreshSelectors()
 			addrEntry.SetText(strings.TrimSpace(cfgFile.Addr))
-			baseEntry.SetText(strings.TrimSpace(cfgFile.BasePath))
+			base := strings.TrimSpace(cfgFile.BasePath)
+			if base != "" && !strings.HasPrefix(base, "/") {
+				base = "/" + base
+			}
+			baseEntry.SetText(base)
+			name := strings.TrimSpace(cfgFile.ServerName)
+			if name == "" {
+				name = "easytools"
+			}
+			serverNameEntry.SetText(name)
 			runEntry.SetText(strings.TrimSpace(cfgFile.Paths.Run))
 			toolsEntry.SetText(strings.TrimSpace(cfgFile.Paths.Tools))
 			reloadEntry.SetText(strings.TrimSpace(cfgFile.Paths.Reload))
@@ -349,7 +370,7 @@ func Run() {
 			listenAllCheck.SetChecked(cfgFile.ListenAllOrDefault())
 			saveConfig()
 		}, w)
-		fd.SetFilter(storage.NewExtensionFileFilter([]string{".yaml", ".yml"}))
+		fd.SetFilter(storage.NewExtensionFileFilter([]string{".conf", ".yaml", ".yml"}))
 		fd.Show()
 	}
 
@@ -369,7 +390,7 @@ func Run() {
 				dialog.ShowError(err, w)
 			}
 		}, w)
-		sd.SetFileName("tools.yaml")
+		sd.SetFileName("easytool.conf")
 		sd.Show()
 	}
 
@@ -609,6 +630,7 @@ func Run() {
 	leftForm := widget.NewForm(
 		widget.NewFormItem("Addr", addrEntry),
 		widget.NewFormItem("Host", listenAllCheck),
+		widget.NewFormItem("Server Name", serverNameEntry),
 		widget.NewFormItem("BasePath", baseEntry),
 		widget.NewFormItem("Run", runEntry),
 		widget.NewFormItem("Tools", toolsEntry),

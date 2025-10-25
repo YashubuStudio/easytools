@@ -23,11 +23,11 @@ go build -o easytools ./cmd/easytools
 
 ```bash
 ./easytools --server \
-  --config /path/to/tools.yaml \
+  --config /path/to/easytool.conf \
   --addr :8080
 ```
 
-GUI が利用できる環境ではダブルクリックまたはフラグなし起動で管理画面が開きます。GUI/CLI どちらでも `tools.yaml` を読み書きし、コマンドライン引数が優先されます。
+GUI が利用できる環境ではダブルクリックまたはフラグなし起動で管理画面が開きます。GUI/CLI どちらでも `easytool.conf` を読み書きし、コマンドライン引数が優先されます。
 
 CLI では登録 API ごとに以下を設定できます:
 
@@ -38,6 +38,11 @@ CLI では登録 API ごとに以下を設定できます:
 - `stdin`: 標準入力の許可有無と初期値
 - `limits`: 実行時間・メモリ・入出力サイズの上限
 
+`easytool.conf` にはツール定義と併せてサーバー全体の設定も含まれます。主なキーは次のとおりです。
+
+- `server_name`: `GET /mcp/package` の `name` として公開される識別子（既定は `easytools`）。
+- `base_path`: すべてのエンドポイントに付与される URL プレフィックス（既定は `/mcp`）。
+
 ## HTTP エンドポイント
 
 | Method | Path | 説明 |
@@ -46,7 +51,7 @@ CLI では登録 API ごとに以下を設定できます:
 | `GET` | `/mcp/package` | 利用可能な API のディスクリプタ一覧（名称、引数、制約、例、自然言語解説）を返します。|
 | `POST` | `/run` | MCP 以外のシンプルな JSON リクエストでコマンドを実行します。|
 | `GET` | `/tools` | 登録済みツール一覧を返します。|
-| `POST` | `/reload` | `tools.yaml` を再読み込みします。|
+| `POST` | `/reload` | `easytool.conf` を再読み込みします。|
 | `GET` | `/healthz` | サーバーのヘルスチェック。|
 
 すべてのエンドポイントは `base_path` と `paths.*` の設定で変更可能です。API キー認証は `X-API-Key` ヘッダで行い、CORS を有効にすると `Access-Control-Allow-*` ヘッダが追加されます。
@@ -93,7 +98,7 @@ curl -X POST 'http://localhost:8080/mcp/run' \
 
 ```json
 {
-  "name": "<tools.yaml で定義したツール名>",
+  "name": "<easytool.conf で定義したツール名>",
   "input": {
     "params": {"<テンプレート変数>": "値", ...},
     "env": {"<許可された環境変数>": "値", ...},
@@ -104,7 +109,7 @@ curl -X POST 'http://localhost:8080/mcp/run' \
 
 | フィールド | 必須 | 説明 |
 | --- | --- | --- |
-| `name` | ✅ | `tools.yaml` のキー名。前後の空白は取り除かれ、空文字列の場合は 400 が返ります。|
+| `name` | ✅ | `easytool.conf` のキー名。前後の空白は取り除かれ、空文字列の場合は 400 が返ります。|
 | `input` | 任意 | 追加の入力をまとめたオブジェクト。省略時は空の入力として扱われます。|
 | `input.params` | 条件付き | コマンドライン引数テンプレート `{{token}}` を埋める値。ツールの `input.params` で `required: true` の項目、またはテンプレートから自動検出されたトークンはすべて必須です。|
 | `input.env` | 任意 | `allow_env` に含まれる環境変数名、もしくは `input.env` で明示した項目に値を渡します。許可されていないキーを送信すると 400 になります。|
@@ -175,7 +180,7 @@ curl -X POST 'http://localhost:8080/run' \
 
 ### `git pull` コマンドを追加する手順
 
-1. 初回起動時に生成される `tools.yaml` を開き、`tools` マップに以下のエントリを追記します。
+1. 初回起動時に生成される `easytool.conf` を開き、`tools` マップに以下のエントリを追記します。
 
    ```yaml
    tools:
