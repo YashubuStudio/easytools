@@ -42,7 +42,7 @@ Per registered API you can configure:
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `POST` | `/mcp/run` | Validates an MCP payload and runs the matching registered API inside the sandbox. |
+| `POST` | `/mcp/run` | Validates an MCP payload and runs the matching registered API inside the sandbox. Also accepts the legacy `/run` payload for compatibility. |
 | `GET` | `/mcp/package` | Returns descriptors with names, arguments, constraints, request/response samples and optional natural-language notes. |
 | `POST` | `/run` | Executes a tool using a simplified JSON payload. |
 | `GET` | `/tools` | Lists registered tools. |
