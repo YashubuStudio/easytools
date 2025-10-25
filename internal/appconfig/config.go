@@ -133,7 +133,7 @@ func (f File) ToServerConfig() *model.ServerConfig {
 	cfg := &model.ServerConfig{
 		Addr:       f.effectiveAddr(),
 		BasePath:   strings.TrimSpace(f.BasePath),
-		APIKey:     f.APIKey,
+		APIKey:     strings.TrimSpace(f.APIKey),
 		CORS:       f.corsValue(),
 		CORSOrigin: strings.TrimSpace(f.CORSOrigin),
 		Tools:      f.Tools,

@@ -163,7 +163,7 @@ func Run() {
 			MCPPackage: strings.TrimSpace(paths.MCPPackage),
 			MCPInvoke:  strings.TrimSpace(paths.MCPInvoke),
 		}
-		cfgFile.APIKey = keyEntry.Text
+		cfgFile.APIKey = strings.TrimSpace(keyEntry.Text)
 		cfgFile.CORSOrigin = strings.TrimSpace(corsOriginEntry.Text)
 		cfgFile.SetListenAll(listenAllCheck.Checked)
 		cfgFile.SetCORS(corsCheck.Checked)
