@@ -65,6 +65,25 @@ curl -X POST 'http://localhost:8080/mcp/run' \
       }'
 ```
 
+> [!TIP]
+> On Windows `cmd.exe`, replace the single quotes and line continuations
+> with double quotes and caret (`^`) continuations:
+>
+> ```cmd
+> curl -X POST "http://localhost:8080/mcp/run" ^
+>   -H "Content-Type: application/json" ^
+>   -H "X-API-Key: devkey" ^
+>   -d "{\\
+>         \"name\": \"echo\",\\
+>         \"input\": {\\
+>           \"params\": {\"msg\": \"hello\"}\\
+>         }\\
+>       }"
+> ```
+>
+> PowerShell users can keep the backtick (`\``) line continuation but should
+> keep the single quotes from the Bash example.
+
 The response is a single validated JSON document with masked fields where necessary.
 
 ### MCP package example
@@ -72,6 +91,10 @@ The response is a single validated JSON document with masked fields where necess
 ```bash
 curl -H 'X-API-Key: devkey' \
   http://localhost:8080/mcp/package
+```
+
+```cmd
+curl -H "X-API-Key: devkey" http://localhost:8080/mcp/package
 ```
 
 ### Simple JSON request example
