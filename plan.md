@@ -112,7 +112,7 @@ GUIから**ツール登録／編集／実行テスト**、および**内蔵HTTP�
 
 ### 5.4 YAML I/O
 
-* **Export**: `tools.yaml`（`api_key` と `tools` を含む）
+* **Export**: `easytool.conf`（`api_key` と `tools` を含む）
 * **Import**: 同形式を読み込み、GUIへ反映
 
 ---
@@ -219,7 +219,7 @@ ServerConfig:
 ## 10. 永続化
 
 * **アプリ設定**（`Addr`, `BasePath`, パス群, `api_key`, `cors`）は Fyne `Preferences` に保存
-* **ツール群**は **YAML** を入出力（`tools.yaml`）。起動時、同名ファイルがあれば自動ロード
+* **ツール群**は **YAML** を入出力（`easytool.conf`）。起動時、同名ファイルがあれば自動ロード
 
 ---
 
@@ -244,7 +244,7 @@ ServerConfig:
 
 ---
 
-## 13. サンプル `tools.yaml`
+## 13. サンプル `easytool.conf`
 
 ```yaml
 api_key: devkey

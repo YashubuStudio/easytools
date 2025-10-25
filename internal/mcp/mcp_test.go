@@ -8,12 +8,13 @@ import (
 )
 
 func TestBuildPackage(t *testing.T) {
-	cfg := &model.ServerConfig{
-		BasePath: "/api",
-		Paths: model.Paths{
-			MCPPackage: "/mcp/manifest",
-			MCPInvoke:  "/mcp/exec",
-		},
+        cfg := &model.ServerConfig{
+                BasePath: "/api",
+                ServerName: "demo-suite",
+                Paths: model.Paths{
+                        MCPPackage: "/mcp/manifest",
+                        MCPInvoke:  "/mcp/exec",
+                },
 		Tools: map[string]model.Tool{
 			"echo": {
 				Group:      "demo",
@@ -58,9 +59,12 @@ func TestBuildPackage(t *testing.T) {
 	}
 
 	pkg := BuildPackage(cfg)
-	if pkg.BasePath != "/api" {
-		t.Fatalf("unexpected base path: %s", pkg.BasePath)
-	}
+        if pkg.Name != "demo-suite" {
+                t.Fatalf("unexpected package name: %s", pkg.Name)
+        }
+        if pkg.BasePath != "/api" {
+                t.Fatalf("unexpected base path: %s", pkg.BasePath)
+        }
 	if pkg.PackagePath != "/api/mcp/manifest" {
 		t.Fatalf("unexpected package path: %s", pkg.PackagePath)
 	}
@@ -133,16 +137,19 @@ func TestBuildPackage(t *testing.T) {
 }
 
 func TestBuildPackageDefaults(t *testing.T) {
-	pkg := BuildPackage(nil)
-	if pkg.BasePath != "/" {
-		t.Fatalf("expected default base path, got %s", pkg.BasePath)
-	}
-	if pkg.PackagePath != "/mcp/package" {
-		t.Fatalf("expected default package path, got %s", pkg.PackagePath)
-	}
-	if pkg.InvokePath != "/mcp/run" {
-		t.Fatalf("expected default invoke path, got %s", pkg.InvokePath)
-	}
+        pkg := BuildPackage(nil)
+        if pkg.Name != "easytools" {
+                t.Fatalf("expected default name, got %s", pkg.Name)
+        }
+        if pkg.BasePath != "/mcp" {
+                t.Fatalf("expected default base path, got %s", pkg.BasePath)
+        }
+        if pkg.PackagePath != "/mcp/package" {
+                t.Fatalf("expected default package path, got %s", pkg.PackagePath)
+        }
+        if pkg.InvokePath != "/mcp/run" {
+                t.Fatalf("expected default invoke path, got %s", pkg.InvokePath)
+        }
 }
 
 func TestInvokeRequestToRunRequest(t *testing.T) {

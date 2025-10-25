@@ -14,8 +14,9 @@ import (
 const (
 	defaultPackageName    = "easytools"
 	defaultPackageVersion = "1.0"
-	defaultPackagePath    = "/mcp/package"
-	defaultInvokePath     = "/mcp/run"
+	defaultBasePath       = "/mcp"
+	defaultPackagePath    = "/package"
+	defaultInvokePath     = "/run"
 )
 
 // Package describes every registered tool as an MCP-compatible bundle.
@@ -107,13 +108,16 @@ func BuildPackage(cfg *model.ServerConfig) Package {
 	pkg := Package{
 		Name:           defaultPackageName,
 		Version:        defaultPackageVersion,
-		BasePath:       normalizeBasePath(""),
-		PackagePath:    util.JoinPathLike(normalizeBasePath(""), defaultPackagePath),
-		InvokePath:     util.JoinPathLike(normalizeBasePath(""), defaultInvokePath),
+		BasePath:       normalizeBasePath(defaultBasePath),
+		PackagePath:    util.JoinPathLike(normalizeBasePath(defaultBasePath), defaultPackagePath),
+		InvokePath:     util.JoinPathLike(normalizeBasePath(defaultBasePath), defaultInvokePath),
 		ResponseSchema: buildResponseSchema(),
 	}
 	if cfg == nil {
 		return pkg
+	}
+	if trimmed := strings.TrimSpace(cfg.ServerName); trimmed != "" {
+		pkg.Name = trimmed
 	}
 	base := normalizeBasePath(cfg.BasePath)
 	packagePath := cfg.Paths.MCPPackage

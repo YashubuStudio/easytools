@@ -229,8 +229,8 @@ func printStandardHelp() {
 
 	fmt.Println()
 	fmt.Println("使用例")
-	fmt.Println("  easytools --server --config C:/tools.yaml --addr :8080")
-	fmt.Println("  easytools --webui --config ./tools.yaml")
+	fmt.Println("  easytools --server --config C:/easytool.conf --addr :8080")
+	fmt.Println("  easytools --webui --config ./easytool.conf")
 }
 
 func printAIHelp() {
@@ -238,14 +238,14 @@ func printAIHelp() {
 	fmt.Println()
 	fmt.Println("概要:")
 	fmt.Println("  EasyTools はローカルで登録したコマンドを API サーバー経由で実行するツールです。")
-	fmt.Println("  MCP プロトコルと REST API を提供し、tools.yaml に定義されたワークフローを呼び出します。")
+	fmt.Println("  MCP プロトコルと REST API を提供し、easytool.conf に定義されたワークフローを呼び出します。")
 	fmt.Println()
 	fmt.Println("基本コマンド:")
 	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(tw, "入力\t説明")
 	fmt.Fprintln(tw, "easytools help\t標準ヘルプ。")
 	fmt.Fprintln(tw, "easytools help -admin\t管理者向けの全オプションを表示。")
-	fmt.Fprintln(tw, "easytools --server --config tools.yaml\tCLI サーバーを設定ファイル付きで起動。")
+	fmt.Fprintln(tw, "easytools --server --config easytool.conf\tCLI サーバーを設定ファイル付きで起動。")
 	fmt.Fprintln(tw, "easytools --webui\tWeb UI を開きながらサーバーを起動。")
 	tw.Flush()
 
@@ -259,7 +259,7 @@ func printAIHelp() {
 
 	fmt.Println()
 	fmt.Println("自然言語の説明:")
-	fmt.Println("  1. `tools.yaml` に実行したいコマンドを登録します。")
+	fmt.Println("  1. `easytool.conf` に実行したいコマンドを登録します。")
 	fmt.Println("  2. `easytools --server` または `easytools --webui` でサーバーを起動します。")
 	fmt.Println("  3. API クライアントやエージェントから `/mcp/run` や `/run` にリクエストを送ります。")
 	fmt.Println("  4. EasyTools が入力を検証し、登録済みコマンドを安全に実行して結果を返します。")
@@ -267,7 +267,7 @@ func printAIHelp() {
 	fmt.Println()
 	fmt.Println("出力例 (サーバーログ抜粋):")
 	fmt.Println("  [cli] starting server on :8080")
-	fmt.Println("  [cli] loaded 5 tools from tools.yaml")
+	fmt.Println("  [cli] loaded 5 tools from easytool.conf")
 }
 
 func printAdminHelp() {
@@ -299,12 +299,13 @@ func printAdminHelp() {
 	fmt.Println("  • 環境変数 `EASYTOOLS_FORCE_CLI=1` で GUI を無効化し CLI 起動を強制できます。")
 	fmt.Println("  • `FYNE_HEADLESS=1` も GUI 無効化に利用可能です (コンテナ運用向け)。")
 	fmt.Println("  • SSH セッションでは自動的に CLI モードに切り替わります。")
-	fmt.Println("  • `POST /reload` を叩くと稼働中サーバーが tools.yaml を再読み込みします。")
+	fmt.Println("  • `POST /reload` を叩くと稼働中サーバーが easytool.conf を再読み込みします。")
 	fmt.Println("  • MCP パッケージは `GET /mcp/package`、ヘルスチェックは `GET /healthz` で確認できます。")
 
 	fmt.Println()
 	fmt.Println("設定ファイルの雛形:")
-	fmt.Println("  tools.yaml に含まれる代表的なキー:")
+	fmt.Println("  easytool.conf に含まれる代表的なキー:")
+	fmt.Println("    server_name         MCP パッケージの name フィールドを上書き")
 	fmt.Println("    tools.<name>.cmd        実行するバイナリ")
 	fmt.Println("    tools.<name>.args       固定引数の配列")
 	fmt.Println("    tools.<name>.timeout    タイムアウト (例: 30s)")

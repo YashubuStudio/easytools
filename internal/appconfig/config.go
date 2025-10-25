@@ -12,11 +12,16 @@ import (
 	"github.com/yashubustudio/easytools/internal/model"
 )
 
-const DefaultPath = "tools.yaml"
+const (
+	DefaultPath        = "easytool.conf"
+	defaultServerName  = "easytools"
+	defaultBasePathKey = "mcp"
+)
 
 type File struct {
 	Addr       string                `yaml:"addr"`
 	BasePath   string                `yaml:"base_path"`
+	ServerName string                `yaml:"server_name"`
 	Paths      model.Paths           `yaml:"paths"`
 	APIKey     string                `yaml:"api_key"`
 	CORS       *bool                 `yaml:"cors"`
@@ -29,15 +34,16 @@ func Default() File {
 	cors := true
 	listenAll := false
 	return File{
-		Addr:     ":8080",
-		BasePath: "/",
+		Addr:       ":8080",
+		BasePath:   defaultBasePathKey,
+		ServerName: defaultServerName,
 		Paths: model.Paths{
 			Run:        "/run",
 			Tools:      "/tools",
 			Reload:     "/reload",
 			Health:     "/healthz",
-			MCPPackage: "/mcp/package",
-			MCPInvoke:  "/mcp/run",
+			MCPPackage: "/package",
+			MCPInvoke:  "/run",
 		},
 		CORS:      &cors,
 		ListenAll: &listenAll,
@@ -76,12 +82,24 @@ func Load(path string) (File, error) {
 		defaultVal := false
 		cfg.ListenAll = &defaultVal
 	}
+	if strings.TrimSpace(cfg.BasePath) == "" {
+		cfg.BasePath = defaultBasePathKey
+	}
+	if strings.TrimSpace(cfg.ServerName) == "" {
+		cfg.ServerName = defaultServerName
+	}
 	cfg.Paths = applyDefaultPaths(cfg.Paths)
 	return cfg, nil
 }
 
 func Save(path string, cfg File) error {
 	cfg.Paths = applyDefaultPaths(cfg.Paths)
+	if strings.TrimSpace(cfg.BasePath) == "" {
+		cfg.BasePath = defaultBasePathKey
+	}
+	if strings.TrimSpace(cfg.ServerName) == "" {
+		cfg.ServerName = defaultServerName
+	}
 	if cfg.Tools == nil {
 		cfg.Tools = map[string]model.Tool{}
 	}
@@ -133,6 +151,7 @@ func (f File) ToServerConfig() *model.ServerConfig {
 	cfg := &model.ServerConfig{
 		Addr:       f.effectiveAddr(),
 		BasePath:   strings.TrimSpace(f.BasePath),
+		ServerName: strings.TrimSpace(f.ServerName),
 		APIKey:     strings.TrimSpace(f.APIKey),
 		CORS:       f.corsValue(),
 		CORSOrigin: strings.TrimSpace(f.CORSOrigin),
@@ -180,6 +199,7 @@ func (f *File) UpdateFromServerConfig(cfg *model.ServerConfig) {
 	}
 	f.Addr = cfg.Addr
 	f.BasePath = cfg.BasePath
+	f.ServerName = cfg.ServerName
 	f.APIKey = cfg.APIKey
 	f.Paths = cfg.Paths
 	cors := cfg.CORS
