@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"testing"
+	"time"
 
 	"github.com/yashubustudio/easytools/internal/model"
 )
@@ -187,11 +188,14 @@ func TestInvokeRequestToRunRequest(t *testing.T) {
 
 func TestBuildResponse(t *testing.T) {
 	res := &model.RunResponse{
-		Tool:     "echo",
-		Command:  []string{"/bin/echo", "hello"},
-		ExitCode: 0,
-		Stdout:   "hello\n",
-		Stderr:   "",
+		Tool:      "echo",
+		Command:   []string{"/bin/echo", "hello"},
+		ExitCode:  0,
+		Stdout:    "hello\n",
+		Stderr:    "",
+		Duration:  22,
+		StartedAt: time.Date(2025, 10, 25, 7, 54, 6, 620229800, time.FixedZone("JST", 9*60*60)),
+		EndedAt:   time.Date(2025, 10, 25, 7, 54, 6, 642464500, time.FixedZone("JST", 9*60*60)),
 	}
 	out := BuildResponse(res)
 	if !out.Success {
@@ -202,6 +206,17 @@ func TestBuildResponse(t *testing.T) {
 	}
 	if len(out.Output.Command) != 2 || out.Output.Command[0] != "/bin/echo" {
 		t.Fatalf("command mismatch: %#v", out.Output.Command)
+	}
+	if out.Output.DurationMs != 22 {
+		t.Fatalf("duration mismatch: %d", out.Output.DurationMs)
+	}
+	expectedStart := "2025-10-25T07:54:06.6202298+09:00"
+	if out.Output.StartedAt != expectedStart {
+		t.Fatalf("started_at mismatch: %s", out.Output.StartedAt)
+	}
+	expectedEnd := "2025-10-25T07:54:06.6424645+09:00"
+	if out.Output.EndedAt != expectedEnd {
+		t.Fatalf("ended_at mismatch: %s", out.Output.EndedAt)
 	}
 
 	res.ExitCode = 2
