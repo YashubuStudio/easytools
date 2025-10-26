@@ -208,6 +208,9 @@ func sanitizeParams(tool model.Tool, params map[string]any) (map[string]any, err
 			if !ok {
 				return nil, fmt.Errorf("missing required param: %s", token)
 			}
+			if err := validateParamValue(token, val); err != nil {
+				return nil, err
+			}
 			sanitized[token] = val
 		}
 		return sanitized, nil
@@ -217,6 +220,9 @@ func sanitizeParams(tool model.Tool, params map[string]any) (map[string]any, err
 	for name, field := range allowed {
 		if params != nil {
 			if val, ok := params[name]; ok {
+				if err := validateParamValue(name, val); err != nil {
+					return nil, err
+				}
 				if sanitized == nil {
 					sanitized = map[string]any{}
 				}
@@ -232,6 +238,23 @@ func sanitizeParams(tool model.Tool, params map[string]any) (map[string]any, err
 		return nil, nil
 	}
 	return sanitized, nil
+}
+
+func validateParamValue(name string, val any) error {
+	if val == nil {
+		return nil
+	}
+	if containsShellMeta(fmt.Sprint(val)) {
+		return fmt.Errorf("param %s contains disallowed shell characters", name)
+	}
+	return nil
+}
+
+func containsShellMeta(v string) bool {
+	if v == "" {
+		return false
+	}
+	return strings.ContainsAny(v, "&|;><")
 }
 
 func sanitizeEnv(tool model.Tool, env map[string]string) (map[string]string, []string, error) {
