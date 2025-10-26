@@ -132,6 +132,25 @@ func TestRecordMissingEnvAddsSpecs(t *testing.T) {
 	}
 }
 
+func TestSanitizeParamsRejectsShellMetaWithExplicitSpec(t *testing.T) {
+	tool := model.Tool{
+		Args: []string{"{{msg}}"},
+		Input: model.ToolInputSpec{
+			Params: []model.ToolInputField{{Name: "msg", Required: true}},
+		},
+	}
+	if _, err := sanitizeParams(tool, map[string]any{"msg": "hello;world"}); err == nil {
+		t.Fatalf("expected error for shell metacharacters")
+	}
+}
+
+func TestSanitizeParamsRejectsShellMetaWithTemplateFallback(t *testing.T) {
+	tool := model.Tool{Args: []string{"{{msg}}"}}
+	if _, err := sanitizeParams(tool, map[string]any{"msg": "foo|bar"}); err == nil {
+		t.Fatalf("expected error for shell metacharacters in template fallback")
+	}
+}
+
 func containsString(list []string, target string) bool {
 	for _, v := range list {
 		if v == target {
