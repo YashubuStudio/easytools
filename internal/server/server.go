@@ -60,7 +60,7 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 	}
 
 	mux := http.NewServeMux()
-	wrap := func(h http.HandlerFunc) http.HandlerFunc {
+	wrap := func(h http.HandlerFunc, requireAPIKey bool) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			if cfg.CORS {
 				origin := "*"
@@ -75,7 +75,7 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 					return
 				}
 			}
-			if cfg.APIKey != "" && r.Header.Get("X-API-Key") != cfg.APIKey {
+			if requireAPIKey && cfg.APIKey != "" && r.Header.Get("X-API-Key") != cfg.APIKey {
 				util.WriteJSON(w, model.StatusUnauthorized, map[string]any{"error": "missing/invalid api key"})
 				return
 			}
@@ -100,7 +100,7 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 		}
 		sort.Strings(names)
 		util.WriteJSON(w, model.StatusOK, map[string]any{"tools": names})
-	}))
+	}, true))
 
 	if cfg.APIKey == "" {
 		mux.HandleFunc(toolsBase+"/", wrap(func(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +122,7 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 			}
 			res, status, _ := execrunner.RunOnce(r.Context(), cfg, &model.RunRequest{Tool: name})
 			util.WriteJSON(w, status, res)
-		}))
+		}, true))
 	}
 
 	mux.HandleFunc(util.JoinPathLike(cfg.BasePath, cfg.Paths.Reload), wrap(func(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +131,7 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 			return
 		}
 		util.WriteJSON(w, model.StatusOK, map[string]any{"ok": true})
-	}))
+	}, true))
 
 	runPath := util.JoinPathLike(cfg.BasePath, cfg.Paths.Run)
 	invokePath := util.JoinPathLike(cfg.BasePath, cfg.Paths.MCPInvoke)
@@ -158,7 +158,7 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 				return
 			}
 			writeInvokeResponse(w, status, res)
-		})
+		}, true)
 	}
 
 	if runPath == invokePath {
@@ -175,7 +175,49 @@ func (s *LegacyServer) Start(cfg *model.ServerConfig) error {
 		}
 		pkg := mcp.BuildPackage(cfg)
 		util.WriteJSON(w, model.StatusOK, pkg)
-	}))
+	}, true))
+
+	mux.HandleFunc("/", wrap(func(w http.ResponseWriter, r *http.Request) {
+		base := cfg.BasePath
+		if base == "" {
+			base = "/"
+		}
+		trimmed := strings.TrimSuffix(base, "/")
+		if trimmed == "" {
+			trimmed = "/"
+		}
+		allowed := map[string]struct{}{"/": {}}
+		allowed[trimmed] = struct{}{}
+		if trimmed != "/" {
+			allowed[trimmed+"/"] = struct{}{}
+		}
+		if _, ok := allowed[r.URL.Path]; !ok {
+			util.WriteJSON(w, model.StatusNotFound, map[string]any{"error": "not found"})
+			return
+		}
+		if r.Method != http.MethodGet {
+			util.WriteJSON(w, model.StatusMethodNotAllowed, map[string]any{"error": "method not allowed"})
+			return
+		}
+		info := map[string]any{
+			"message":     "easytools API server is running",
+			"server_name": cfg.ServerName,
+			"base_path":   base,
+			"endpoints": map[string]string{
+				"tools":   util.JoinPathLike(base, cfg.Paths.Tools),
+				"reload":  util.JoinPathLike(base, cfg.Paths.Reload),
+				"health":  util.JoinPathLike(base, cfg.Paths.Health),
+				"run":     util.JoinPathLike(base, cfg.Paths.Run),
+				"mcp_run": util.JoinPathLike(base, cfg.Paths.MCPInvoke),
+				"package": util.JoinPathLike(base, cfg.Paths.MCPPackage),
+			},
+			"note": "The configuration Web UI runs on a separate listener when --webui is enabled (default http://127.0.0.1:18080/).",
+		}
+		if cfg.APIKey != "" {
+			info["api_key_required"] = true
+		}
+		util.WriteJSON(w, model.StatusOK, info)
+	}, false))
 
 	s.cfg = cfg
 	s.srv = &http.Server{Addr: cfg.Addr, Handler: util.LogMiddleware(mux, writerOrNil(s.LogWriter))}
