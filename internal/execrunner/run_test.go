@@ -32,8 +32,12 @@ func TestRunOnceSanitizesParams(t *testing.T) {
 		t.Fatalf("stdout not rendered: %q", res.Stdout)
 	}
 
-	if _, status, err := RunOnce(context.Background(), cfg, &model.RunRequest{Tool: "echo"}); err == nil || status != 400 {
+	res, status, err = RunOnce(context.Background(), cfg, &model.RunRequest{Tool: "echo"})
+	if err == nil || status != 400 {
 		t.Fatalf("expected validation error for missing param")
+	}
+	if res.Stderr == "" {
+		t.Fatalf("expected stderr to include validation message")
 	}
 }
 
