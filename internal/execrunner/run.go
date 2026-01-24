@@ -85,15 +85,16 @@ func RenderArgs(templates []string, params map[string]any) ([]string, error) {
 func RunOnce(ctx context.Context, cfg *model.ServerConfig, req *model.RunRequest) (*model.RunResponse, int, error) {
 	tool, ok := cfg.Tools[req.Tool]
 	if !ok {
-		return &model.RunResponse{Tool: req.Tool}, 404, fmt.Errorf("unknown tool: %s", req.Tool)
+		err := fmt.Errorf("unknown tool: %s", req.Tool)
+		return errorResponse(req.Tool, err), 404, err
 	}
 	params, err := sanitizeParams(tool, req.Params)
 	if err != nil {
-		return &model.RunResponse{Tool: req.Tool}, 400, err
+		return errorResponse(req.Tool, err), 400, err
 	}
 	envVars, missingEnv, err := sanitizeEnv(tool, req.Env)
 	if err != nil {
-		return &model.RunResponse{Tool: req.Tool}, 400, err
+		return errorResponse(req.Tool, err), 400, err
 	}
 	if len(missingEnv) > 0 {
 		for _, name := range missingEnv {
@@ -105,16 +106,18 @@ func RunOnce(ctx context.Context, cfg *model.ServerConfig, req *model.RunRequest
 	}
 	stdin, err := sanitizeStdin(tool, req.Stdin)
 	if err != nil {
-		return &model.RunResponse{Tool: req.Tool}, 400, err
+		return errorResponse(req.Tool, err), 400, err
 	}
 
 	args, err := RenderArgs(tool.Args, params)
 	if err != nil {
-		return &model.RunResponse{Tool: req.Tool}, 400, fmt.Errorf("arg template error: %w", err)
+		wrapped := fmt.Errorf("arg template error: %w", err)
+		return errorResponse(req.Tool, wrapped), 400, wrapped
 	}
 	cmdPath, err := exec.LookPath(tool.Cmd)
 	if err != nil {
-		return &model.RunResponse{Tool: req.Tool}, 400, fmt.Errorf("cmd not found: %s", tool.Cmd)
+		wrapped := fmt.Errorf("cmd not found: %s", tool.Cmd)
+		return errorResponse(req.Tool, wrapped), 400, wrapped
 	}
 	timeout := 60 * time.Second
 	if tool.Timeout != "" {
@@ -185,6 +188,15 @@ func RunOnce(ctx context.Context, cfg *model.ServerConfig, req *model.RunRequest
 	}
 	applyOutputMask(tool, resp)
 	return resp, status, nil
+}
+
+func errorResponse(tool string, err error) *model.RunResponse {
+	resp := &model.RunResponse{Tool: tool}
+	if err != nil {
+		resp.Stderr = err.Error()
+		resp.ExitCode = 1
+	}
+	return resp
 }
 
 func sanitizeParams(tool model.Tool, params map[string]any) (map[string]any, error) {
